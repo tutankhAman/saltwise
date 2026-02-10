@@ -782,25 +782,25 @@ export function getDrugById(id: string): DrugSearchResult | null {
  */
 const PRESCRIPTION_PRESETS: PrescriptionMedicine[][] = [
   [
-    { name: "Dolo 650", dosage: "650mg", quantity: 15 },
-    { name: "Pan 40", dosage: "40mg", quantity: 15 },
-    { name: "Augmentin 625 Duo", dosage: "500mg + 125mg", quantity: 10 },
+    { name: "Dolo 650", strength: "650mg", quantity: 15 },
+    { name: "Pan 40", strength: "40mg", quantity: 15 },
+    { name: "Augmentin 625 Duo", strength: "500mg + 125mg", quantity: 10 },
   ],
   [
-    { name: "Shelcal 500", dosage: "500mg + 250IU", quantity: 30 },
-    { name: "Thyronorm", dosage: "100mcg", quantity: 30 },
-    { name: "Becosules", dosage: "N/A", quantity: 20 },
+    { name: "Shelcal 500", strength: "500mg + 250IU", quantity: 30 },
+    { name: "Thyronorm", strength: "100mcg", quantity: 30 },
+    { name: "Becosules", strength: "N/A", quantity: 20 },
   ],
   [
-    { name: "Dolo 650", dosage: "650mg", quantity: 15 },
-    { name: "Telma 40", dosage: "40mg", quantity: 15 },
-    { name: "Glycomet-GP 1", dosage: "500mg + 1mg", quantity: 15 },
-    { name: "Pan 40", dosage: "40mg", quantity: 15 },
+    { name: "Dolo 650", strength: "650mg", quantity: 15 },
+    { name: "Telma 40", strength: "40mg", quantity: 15 },
+    { name: "Glycomet-GP 1", strength: "500mg + 1mg", quantity: 15 },
+    { name: "Pan 40", strength: "40mg", quantity: 15 },
   ],
 ];
 
 export async function parseMockPrescription(
-  fileName: string
+  _fileName: string
 ): Promise<PrescriptionParseResult> {
   // Simulate network + OCR processing delay
   await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -809,17 +809,7 @@ export async function parseMockPrescription(
   const medicines: PrescriptionMedicine[] =
     PRESCRIPTION_PRESETS[presetIndex] ?? [];
 
-  const results: DrugSearchResult[] = [];
-  for (const med of medicines) {
-    const drug = MOCK_DRUGS.find(
-      (d) => d.brandName.toLowerCase() === med.name.toLowerCase()
-    );
-    if (drug) {
-      results.push(buildMockSearchResult(drug));
-    }
-  }
-
-  return { medicines, results, fileName };
+  return { medicines, confidence: 0.9 };
 }
 
 /**

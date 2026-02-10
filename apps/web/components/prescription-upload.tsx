@@ -3,97 +3,208 @@
 import { Badge } from "@saltwise/ui/components/badge";
 import { Progress } from "@saltwise/ui/components/progress";
 import {
+  AlertCircleIcon,
   CheckCircle2Icon,
   FileTextIcon,
+  ImageIcon,
   UploadCloudIcon,
   XIcon,
 } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
-import { parseMockPrescription } from "@/lib/mock-data";
-import type { DrugSearchResult } from "@/lib/types";
+import type { PrescriptionMedicine } from "@/lib/types";
 
-type UploadStatus = "idle" | "uploading" | "parsing" | "done" | "error";
+type UploadStatus = "idle" | "reading" | "parsing" | "done" | "error";
 
 interface PrescriptionUploadProps {
-  onResults: (results: DrugSearchResult[], fileName: string) => void;
+  onMedicinesIdentified: (medicines: PrescriptionMedicine[]) => void;
 }
 
-const ACCEPTED_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "application/pdf",
-];
+const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4 MB
 
 function getStatusLabel(status: UploadStatus): string {
   switch (status) {
-    case "uploading":
-      return "Uploading prescription...";
+    case "reading":
+      return "Reading image...";
     case "parsing":
-      return "Reading medicines from prescription...";
+      return "Identifying medicines via AI...";
     case "done":
-      return "Prescription parsed successfully!";
+      return "Medicines identified!";
     case "error":
-      return "Failed to parse prescription. Please try again.";
+      return "Failed to process prescription";
     default:
       return "";
   }
 }
 
-export function PrescriptionUpload({ onResults }: PrescriptionUploadProps) {
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) {
+    return `${bytes} B`;
+  }
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(1)} KB`;
+  }
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function StatusIcon({
+  status,
+  isDragOver,
+  isProcessing,
+}: {
+  status: UploadStatus;
+  isDragOver: boolean;
+  isProcessing: boolean;
+}) {
+  if (status === "done") {
+    return (
+      <div className="flex size-12 items-center justify-center rounded-xl bg-emerald-100 dark:bg-emerald-900/30">
+        <CheckCircle2Icon className="size-6 text-emerald-600 dark:text-emerald-400" />
+      </div>
+    );
+  }
+
+  if (status === "error") {
+    return (
+      <div className="flex size-12 items-center justify-center rounded-xl bg-destructive/10">
+        <AlertCircleIcon className="size-6 text-destructive" />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={`flex size-12 items-center justify-center rounded-xl transition-colors duration-300 ${
+        isDragOver ? "bg-primary/10" : "bg-muted/40 dark:bg-white/[0.06]"
+      }`}
+    >
+      {isProcessing ? (
+        <ImageIcon className="size-6 animate-pulse text-primary" />
+      ) : (
+        <UploadCloudIcon
+          className={`size-6 transition-colors duration-300 ${
+            isDragOver ? "text-primary" : "text-muted-foreground/50"
+          }`}
+        />
+      )}
+    </div>
+  );
+}
+
+export function PrescriptionUpload({
+  onMedicinesIdentified,
+}: PrescriptionUploadProps) {
   const [status, setStatus] = useState<UploadStatus>("idle");
   const [progress, setProgress] = useState(0);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [medicineCount, setMedicineCount] = useState(0);
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const processFile = useCallback(
     async (file: File) => {
       setFileName(file.name);
-      setStatus("uploading");
-      setProgress(0);
+      setErrorMessage(null);
+      setMedicineCount(0);
 
-      // Simulate upload progress
-      const uploadInterval = setInterval(() => {
-        setProgress((prev) => {
-          if (prev >= 40) {
-            clearInterval(uploadInterval);
-            return 40;
-          }
-          return prev + 8;
+      // Validate file size
+      if (file.size > MAX_FILE_SIZE) {
+        setStatus("error");
+        setErrorMessage(
+          `File too large (${formatFileSize(file.size)}). Maximum is 4 MB.`
+        );
+        return;
+      }
+
+      // --- Phase 1: Read file as base64 ---
+      setStatus("reading");
+      setProgress(15);
+
+      let dataUri: string;
+      try {
+        dataUri = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = () => reject(new Error("Failed to read file"));
+          reader.readAsDataURL(file);
         });
-      }, 100);
+      } catch {
+        setStatus("error");
+        setErrorMessage("Could not read the image file.");
+        setProgress(0);
+        return;
+      }
 
-      // Wait for "upload" to reach 40%
-      await new Promise((resolve) => setTimeout(resolve, 600));
-      clearInterval(uploadInterval);
-      setProgress(40);
+      setProgress(30);
 
-      // Switch to parsing phase
+      // --- Phase 2: Send to OCR API ---
       setStatus("parsing");
-      const parseInterval = setInterval(() => {
+      setProgress(45);
+
+      // Gradually animate progress while waiting for API
+      const progressInterval = setInterval(() => {
         setProgress((prev) => {
-          if (prev >= 90) {
-            clearInterval(parseInterval);
-            return 90;
+          if (prev >= 85) {
+            clearInterval(progressInterval);
+            return 85;
           }
-          return prev + 5;
+          return prev + 2;
         });
-      }, 150);
+      }, 300);
 
       try {
-        const result = await parseMockPrescription(file.name);
-        clearInterval(parseInterval);
+        const res = await fetch("/api/prescription/parse", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ image: dataUri }),
+        });
+
+        clearInterval(progressInterval);
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          const message =
+            (data as { error?: string }).error ??
+            "Failed to process prescription";
+
+          // Special handling for auth errors
+          if (res.status === 401) {
+            setStatus("error");
+            setErrorMessage("Please sign in to upload prescriptions.");
+            setProgress(0);
+            return;
+          }
+
+          throw new Error(message);
+        }
+
+        const data: { medicines: PrescriptionMedicine[]; confidence: number } =
+          await res.json();
+
+        if (data.medicines.length === 0) {
+          setStatus("error");
+          setErrorMessage(
+            "No medicines detected. Try a clearer photo of the prescription."
+          );
+          setProgress(0);
+          return;
+        }
+
         setProgress(100);
         setStatus("done");
-        onResults(result.results, result.fileName);
-      } catch {
-        clearInterval(parseInterval);
+        setMedicineCount(data.medicines.length);
+        onMedicinesIdentified(data.medicines);
+      } catch (err) {
+        clearInterval(progressInterval);
         setStatus("error");
+        setErrorMessage(
+          err instanceof Error ? err.message : "Failed to process prescription"
+        );
         setProgress(0);
       }
     },
-    [onResults]
+    [onMedicinesIdentified]
   );
 
   const handleFile = useCallback(
@@ -101,6 +212,7 @@ export function PrescriptionUpload({ onResults }: PrescriptionUploadProps) {
       if (!ACCEPTED_TYPES.includes(file.type)) {
         setStatus("error");
         setFileName(file.name);
+        setErrorMessage("Unsupported format. Use JPEG, PNG, or WebP images.");
         return;
       }
       processFile(file);
@@ -144,12 +256,14 @@ export function PrescriptionUpload({ onResults }: PrescriptionUploadProps) {
     setStatus("idle");
     setProgress(0);
     setFileName(null);
+    setErrorMessage(null);
+    setMedicineCount(0);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   }, []);
 
-  const isProcessing = status === "uploading" || status === "parsing";
+  const isProcessing = status === "reading" || status === "parsing";
 
   const dropZoneClasses = (() => {
     const base =
@@ -182,25 +296,11 @@ export function PrescriptionUpload({ onResults }: PrescriptionUploadProps) {
         <div className="flex flex-col items-center gap-3 px-6 py-6 text-center sm:flex-row sm:text-left">
           {/* Icon */}
           <div className="flex shrink-0 items-center justify-center">
-            {status === "done" ? (
-              <div className="flex size-12 items-center justify-center rounded-xl bg-emerald-100 dark:bg-emerald-900/30">
-                <CheckCircle2Icon className="size-6 text-emerald-600 dark:text-emerald-400" />
-              </div>
-            ) : (
-              <div
-                className={`flex size-12 items-center justify-center rounded-xl transition-colors duration-300 ${
-                  isDragOver
-                    ? "bg-primary/10"
-                    : "bg-muted/40 dark:bg-white/[0.06]"
-                }`}
-              >
-                <UploadCloudIcon
-                  className={`size-6 transition-colors duration-300 ${
-                    isDragOver ? "text-primary" : "text-muted-foreground/50"
-                  }`}
-                />
-              </div>
-            )}
+            <StatusIcon
+              isDragOver={isDragOver}
+              isProcessing={isProcessing}
+              status={status}
+            />
           </div>
 
           {/* Content */}
@@ -211,14 +311,15 @@ export function PrescriptionUpload({ onResults }: PrescriptionUploadProps) {
                   Upload Prescription
                 </p>
                 <p className="mt-0.5 text-muted-foreground text-xs">
-                  Drag & drop an image or PDF, or{" "}
+                  Drop a photo or{" "}
                   <button
                     className="font-medium text-primary underline-offset-2 hover:underline"
                     onClick={() => fileInputRef.current?.click()}
                     type="button"
                   >
-                    browse files
-                  </button>
+                    browse
+                  </button>{" "}
+                  &middot; JPEG, PNG, WebP &middot; max 4 MB
                 </p>
               </div>
             )}
@@ -247,7 +348,8 @@ export function PrescriptionUpload({ onResults }: PrescriptionUploadProps) {
                   {fileName}
                 </span>
                 <Badge className="shrink-0 border-0 bg-emerald-100 text-[0.6rem] text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
-                  {getStatusLabel(status)}
+                  {medicineCount}{" "}
+                  {medicineCount === 1 ? "medicine" : "medicines"} found
                 </Badge>
               </div>
             )}
@@ -255,10 +357,10 @@ export function PrescriptionUpload({ onResults }: PrescriptionUploadProps) {
             {status === "error" && (
               <div>
                 <p className="font-medium text-destructive text-xs">
-                  {getStatusLabel(status)}
+                  {errorMessage ?? getStatusLabel(status)}
                 </p>
                 <p className="mt-0.5 text-muted-foreground text-xs">
-                  Accepted formats: JPEG, PNG, WebP, PDF
+                  Accepted: JPEG, PNG, WebP images up to 4 MB
                 </p>
               </div>
             )}

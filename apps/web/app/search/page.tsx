@@ -13,15 +13,17 @@ import {
   InputGroupInput,
 } from "@saltwise/ui/components/input-group";
 import { Skeleton } from "@saltwise/ui/components/skeleton";
-import { PillIcon, SearchIcon, XIcon } from "lucide-react";
+import { Loader2Icon, PillIcon, SearchIcon, XIcon } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
-import { AggregateSavings } from "@/components/aggregate-savings";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { MedicineCard } from "@/components/medicine-card";
+import { PrescriptionChips } from "@/components/prescription-chips";
 import { PrescriptionUpload } from "@/components/prescription-upload";
 import { useDebounce } from "@/hooks/use-debounce";
-import { computeAggregateSavings, searchMockDrugs } from "@/lib/mock-data";
-import type { DrugSearchResult } from "@/lib/types";
+import { searchMockDrugs } from "@/lib/mock-data";
+import type { DrugSearchResult, PrescriptionMedicine } from "@/lib/types";
+
+const PENDING_RX_KEY = "pendingPrescription";
 
 function LoadingSkeleton() {
   return (
@@ -73,9 +75,39 @@ async function fetchSearchResults(query: string): Promise<DrugSearchResult[]> {
   }
 }
 
+/** Process a pending prescription from sessionStorage (homepage handoff). */
+async function processPendingPrescription(): Promise<PrescriptionMedicine[]> {
+  const raw = sessionStorage.getItem(PENDING_RX_KEY);
+  if (!raw) {
+    return [];
+  }
+
+  try {
+    const { image } = JSON.parse(raw) as { image: string; fileName: string };
+    sessionStorage.removeItem(PENDING_RX_KEY);
+
+    const res = await fetch("/api/prescription/parse", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ image }),
+    });
+
+    if (!res.ok) {
+      return [];
+    }
+
+    const data: { medicines: PrescriptionMedicine[] } = await res.json();
+    return data.medicines;
+  } catch {
+    sessionStorage.removeItem(PENDING_RX_KEY);
+    return [];
+  }
+}
+
 function SearchContent() {
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get("q") ?? "";
+  const isPendingPrescription = searchParams.get("prescription") === "pending";
   const router = useRouter();
 
   const [query, setQuery] = useState(initialQuery);
@@ -84,21 +116,40 @@ function SearchContent() {
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
 
-  // Prescription upload state
-  const [prescriptionResults, setPrescriptionResults] = useState<
-    DrugSearchResult[]
+  // Prescription state
+  const [prescriptionMedicines, setPrescriptionMedicines] = useState<
+    PrescriptionMedicine[]
   >([]);
-  const [prescriptionFileName, setPrescriptionFileName] = useState<
-    string | null
-  >(null);
+  const [activeChipIndex, setActiveChipIndex] = useState<number | null>(null);
+  const [processingPrescription, setProcessingPrescription] = useState(false);
+  const pendingProcessed = useRef(false);
+
+  // Handle homepage prescription handoff
+  useEffect(() => {
+    if (!isPendingPrescription || pendingProcessed.current) {
+      return;
+    }
+    pendingProcessed.current = true;
+
+    setProcessingPrescription(true);
+    processPendingPrescription()
+      .then((medicines) => {
+        if (medicines.length > 0) {
+          setPrescriptionMedicines(medicines);
+        }
+        // Clean up URL param
+        router.replace("/search");
+      })
+      .finally(() => setProcessingPrescription(false));
+  }, [isPendingPrescription, router]);
 
   useEffect(() => {
     if (debouncedQuery) {
       router.replace(`/search?q=${encodeURIComponent(debouncedQuery)}`);
-    } else {
+    } else if (!isPendingPrescription) {
       router.replace("/search");
     }
-  }, [debouncedQuery, router]);
+  }, [debouncedQuery, router, isPendingPrescription]);
 
   const resetResults = useCallback(() => {
     setResults([]);
@@ -127,28 +178,43 @@ function SearchContent() {
     router.replace("/search");
   };
 
-  const handlePrescriptionResults = useCallback(
-    (newResults: DrugSearchResult[], fileName: string) => {
-      setPrescriptionResults(newResults);
-      setPrescriptionFileName(fileName);
+  // --- Prescription handlers ---
+
+  const handleMedicinesIdentified = useCallback(
+    (medicines: PrescriptionMedicine[]) => {
+      setPrescriptionMedicines(medicines);
+      setActiveChipIndex(null);
     },
     []
   );
 
-  const dismissPrescription = useCallback(() => {
-    setPrescriptionResults([]);
-    setPrescriptionFileName(null);
-  }, []);
-
-  const aggregateSavings = useMemo(
-    () =>
-      prescriptionResults.length > 0
-        ? computeAggregateSavings(prescriptionResults)
-        : null,
-    [prescriptionResults]
+  const handleChipSelect = useCallback(
+    (medicine: PrescriptionMedicine, index: number) => {
+      setActiveChipIndex(index);
+      const searchTerm = medicine.name;
+      setQuery(searchTerm);
+    },
+    []
   );
 
-  const hasPrescriptionResults = prescriptionResults.length > 0;
+  const handleChipDismiss = useCallback(
+    (index: number) => {
+      setPrescriptionMedicines((prev) => prev.filter((_, i) => i !== index));
+      if (activeChipIndex === index) {
+        setActiveChipIndex(null);
+      } else if (activeChipIndex !== null && activeChipIndex > index) {
+        setActiveChipIndex(activeChipIndex - 1);
+      }
+    },
+    [activeChipIndex]
+  );
+
+  const handleClearAllChips = useCallback(() => {
+    setPrescriptionMedicines([]);
+    setActiveChipIndex(null);
+  }, []);
+
+  const hasPrescriptionMedicines = prescriptionMedicines.length > 0;
 
   return (
     <div className="relative min-h-screen">
@@ -203,54 +269,37 @@ function SearchContent() {
 
           {/* Prescription upload zone */}
           <div className="mx-auto mt-4 max-w-xl">
-            <PrescriptionUpload onResults={handlePrescriptionResults} />
+            <PrescriptionUpload
+              onMedicinesIdentified={handleMedicinesIdentified}
+            />
           </div>
+
+          {/* Pending prescription processing indicator */}
+          {processingPrescription && (
+            <div className="fade-in mx-auto mt-4 flex max-w-xl animate-in items-center justify-center gap-2 rounded-xl border border-primary/20 bg-primary/5 fill-mode-forwards px-4 py-3 duration-300">
+              <Loader2Icon className="size-4 animate-spin text-primary" />
+              <span className="font-medium text-primary text-sm">
+                Processing your prescription...
+              </span>
+            </div>
+          )}
+
+          {/* Prescription medicine chips */}
+          {hasPrescriptionMedicines && !processingPrescription && (
+            <div className="mx-auto mt-5 max-w-xl">
+              <PrescriptionChips
+                activeIndex={activeChipIndex}
+                medicines={prescriptionMedicines}
+                onClearAll={handleClearAllChips}
+                onDismiss={handleChipDismiss}
+                onSelect={handleChipSelect}
+              />
+            </div>
+          )}
         </div>
 
         {/* Results area */}
         <div className="space-y-6">
-          {/* Aggregate savings banner */}
-          {hasPrescriptionResults &&
-            aggregateSavings &&
-            prescriptionFileName && (
-              <AggregateSavings
-                fileName={prescriptionFileName}
-                onDismiss={dismissPrescription}
-                savings={aggregateSavings}
-              />
-            )}
-
-          {/* Prescription results */}
-          {hasPrescriptionResults && (
-            <div className="fade-in animate-in fill-mode-forwards duration-500">
-              <p className="mb-4 text-muted-foreground/70 text-xs">
-                {prescriptionResults.length}{" "}
-                {prescriptionResults.length === 1 ? "medicine" : "medicines"}{" "}
-                found in prescription
-              </p>
-              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {prescriptionResults.map((result, i) => (
-                  <MedicineCard
-                    index={i}
-                    key={result.drug.id}
-                    result={result}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Divider between prescription and search results */}
-          {hasPrescriptionResults && hasSearched && !loading && (
-            <div className="flex items-center gap-3 pt-2">
-              <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border/60 to-transparent" />
-              <span className="text-muted-foreground/40 text-xs">
-                Search Results
-              </span>
-              <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border/60 to-transparent" />
-            </div>
-          )}
-
           {loading && <LoadingSkeleton />}
 
           {/* No results */}
@@ -295,7 +344,12 @@ function SearchContent() {
           )}
 
           {/* Empty state - no search yet */}
-          {!(loading || hasSearched || hasPrescriptionResults) && (
+          {!(
+            loading ||
+            hasSearched ||
+            hasPrescriptionMedicines ||
+            processingPrescription
+          ) && (
             <div className="fade-in slide-in-from-bottom-4 animate-in fill-mode-forwards duration-700">
               <div className="mx-auto max-w-md py-20 text-center">
                 {/* Decorative pill icon */}

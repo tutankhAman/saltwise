@@ -96,14 +96,14 @@ export interface UnifiedSearchResponse {
 
 export interface PrescriptionMedicine {
   name: string;
-  dosage?: string;
+  strength?: string;
+  form?: string;
   quantity?: number;
 }
 
 export interface PrescriptionParseResult {
   medicines: PrescriptionMedicine[];
-  results: DrugSearchResult[];
-  fileName: string;
+  confidence: number;
 }
 
 export interface AggregateSavingsData {
