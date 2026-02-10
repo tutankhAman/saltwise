@@ -9,6 +9,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useChatMessages } from "@/hooks/use-ai-chat";
 import { useChatStore } from "@/hooks/use-chat-store";
 import { useTts } from "@/hooks/use-tts";
+import { useStreamingTts } from "@/hooks/use-tts-stream";
 import { useVoiceRecorder } from "@/hooks/use-voice-recorder";
 import { MAX_MESSAGE_LENGTH } from "@/lib/ai/salty";
 import { createClient } from "@/lib/supabase/client";
@@ -24,7 +25,8 @@ interface ChatMessage {
 async function readStream(
   response: Response,
   assistantMessageId: string,
-  setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>
+  setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>,
+  onToken?: (token: string) => void
 ): Promise<string> {
   const reader = response.body?.getReader();
   if (!reader) {
@@ -42,6 +44,7 @@ async function readStream(
     if (result.value) {
       const text = decoder.decode(result.value, { stream: true });
       fullText += text;
+      onToken?.(text);
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === assistantMessageId
@@ -152,14 +155,17 @@ export function ChatInterface() {
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastAssistantIdRef = useRef<string | null>(null);
 
-  // --- TTS hook ---
+  // --- TTS hook (for manual toggle on completed messages) ---
   const {
-    autoPlay: ttsAutoPlay,
     toggle: ttsToggle,
     getState: ttsGetState,
-    autoRead: ttsAutoRead,
-    toggleAutoRead: ttsToggleAutoRead,
+    stopAll: ttsStopAll,
   } = useTts({
+    onError: (msg) => setError(msg),
+  });
+
+  // --- Streaming TTS hook (for real-time auto-read during LLM streaming) ---
+  const streamingTts = useStreamingTts({
     onError: (msg) => setError(msg),
   });
 
@@ -262,8 +268,9 @@ export function ChatInterface() {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
       setIsStreaming(false);
+      streamingTts.stop();
     }
-  }, []);
+  }, [streamingTts]);
 
   const sendMessage = useCallback(
     async (overrideMessage?: string) => {
@@ -284,6 +291,11 @@ export function ChatInterface() {
       const userMessageId = crypto.randomUUID();
       const assistantMessageId = crypto.randomUUID();
       lastAssistantIdRef.current = assistantMessageId;
+
+      // Start streaming TTS session so tokens can be fed as they arrive
+      // Stop any existing manual TTS playback first
+      ttsStopAll();
+      streamingTts.startSession();
 
       // Optimistic update
       setChatMessages((prev) => [
@@ -330,16 +342,16 @@ export function ChatInterface() {
           queryClient.invalidateQueries({ queryKey: ["conversations"] });
         }
 
-        const fullResponse = await readStream(
+        // Read stream with token callback that feeds streaming TTS in real-time
+        await readStream(
           response,
           assistantMessageId,
-          setChatMessages
+          setChatMessages,
+          (token) => streamingTts.feedToken(token)
         );
 
-        // Auto-read: explicitly trigger TTS now that streaming is complete
-        if (fullResponse.trim()) {
-          ttsAutoPlay(assistantMessageId, fullResponse);
-        }
+        // Signal that all LLM tokens have arrived — flush remaining buffered text
+        streamingTts.flushAndFinish();
 
         // After stream ends, invalidate messages to ensure we have the DB state
         if (newConversationId) {
@@ -349,12 +361,14 @@ export function ChatInterface() {
         }
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") {
+          streamingTts.stop();
           return;
         }
 
         const errorMessage =
           err instanceof Error ? err.message : "Something went wrong";
         setError(errorMessage);
+        streamingTts.stop();
         setChatMessages((prev) =>
           prev.filter((msg) => msg.id !== assistantMessageId)
         );
@@ -372,7 +386,8 @@ export function ChatInterface() {
       activeConversationId,
       queryClient,
       setActiveConversation,
-      ttsAutoPlay,
+      ttsStopAll,
+      streamingTts,
     ]
   );
 
@@ -650,18 +665,18 @@ export function ChatInterface() {
             {/* Auto-read toggle */}
             <button
               aria-label={
-                ttsAutoRead
+                streamingTts.autoRead
                   ? "Disable auto-read responses"
                   : "Enable auto-read responses"
               }
-              aria-pressed={ttsAutoRead}
+              aria-pressed={streamingTts.autoRead}
               className={cn(
                 "ml-3 flex shrink-0 items-center gap-1.5 rounded-full border px-2 py-0.5 text-[0.6rem] transition-all duration-200",
-                ttsAutoRead
+                streamingTts.autoRead
                   ? "border-primary/30 bg-primary/10 text-primary"
                   : "border-border/40 text-muted-foreground/50 hover:border-border/60 hover:text-muted-foreground/70"
               )}
-              onClick={ttsToggleAutoRead}
+              onClick={streamingTts.toggleAutoRead}
               type="button"
             >
               <Volume2Icon className="size-3" />
