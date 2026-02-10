@@ -1,6 +1,6 @@
 "use client";
 
-import { PillIcon, SparklesIcon, XIcon } from "lucide-react";
+import { PillIcon, SearchIcon, SparklesIcon, XIcon } from "lucide-react";
 import { useCallback } from "react";
 import type { PrescriptionMedicine } from "@/lib/types";
 
@@ -32,20 +32,22 @@ export function PrescriptionChips({
   }
 
   return (
-    <div className="fade-in slide-in-from-bottom-2 animate-in fill-mode-forwards duration-500 ease-out">
+    <div className="fade-in slide-in-from-bottom-3 animate-in fill-mode-forwards duration-600 ease-out">
       {/* Header */}
-      <div className="mb-2.5 flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <SparklesIcon className="size-3 text-primary/70" />
-          <span className="font-heading font-medium text-[0.7rem] text-foreground/70 uppercase tracking-wider">
-            Prescription Medicines
+      <div className="mb-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="flex size-5 items-center justify-center rounded-md bg-primary/10">
+            <SparklesIcon className="size-3 text-primary" />
+          </div>
+          <span className="font-heading font-semibold text-foreground/80 text-xs uppercase tracking-wider">
+            Medicines Found
           </span>
-          <span className="rounded-full bg-primary/10 px-1.5 py-0.5 font-medium text-[0.6rem] text-primary tabular-nums">
+          <span className="rounded-full bg-primary/10 px-2 py-0.5 font-semibold text-[0.65rem] text-primary tabular-nums leading-none">
             {medicines.length}
           </span>
         </div>
         <button
-          className="font-medium text-[0.65rem] text-muted-foreground/50 transition-colors hover:text-foreground"
+          className="rounded-lg px-2 py-1 font-medium text-muted-foreground/50 text-xs transition-colors hover:bg-muted/50 hover:text-foreground"
           onClick={onClearAll}
           type="button"
         >
@@ -53,47 +55,31 @@ export function PrescriptionChips({
         </button>
       </div>
 
-      {/* Chips */}
-      <div className="flex flex-wrap gap-2">
+      {/* Cards grid */}
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
         {medicines.map((med, i) => {
           const isActive = activeIndex === i;
-          const label = med.strength ? `${med.name} ${med.strength}` : med.name;
 
           return (
             <button
-              className={`group inline-flex items-center gap-1.5 rounded-full border py-1.5 pr-1.5 pl-3 font-medium text-xs shadow-sm transition-all duration-200 active:scale-[0.97] ${
+              className={`fade-in slide-in-from-bottom-2 group relative flex animate-in flex-col items-start gap-2 rounded-xl border fill-mode-forwards p-3.5 text-left shadow-sm transition-all duration-200 active:scale-[0.97] ${
                 isActive
-                  ? "border-primary/40 bg-primary/10 text-primary shadow-primary/10 ring-2 ring-primary/20"
-                  : "border-border/50 bg-white/70 text-foreground/80 backdrop-blur-sm hover:border-primary/30 hover:bg-primary/5 hover:text-foreground hover:shadow-md dark:bg-white/[0.05] dark:hover:bg-white/[0.08]"
+                  ? "border-primary/50 bg-primary/[0.08] shadow-md shadow-primary/10 ring-2 ring-primary/20"
+                  : "border-border/50 bg-white/70 backdrop-blur-sm hover:border-primary/30 hover:bg-primary/5 hover:shadow-md dark:bg-white/[0.05] dark:hover:bg-white/[0.08]"
               }`}
               key={`${med.name}-${i}`}
               onClick={() => onSelect(med, i)}
-              style={{ animationDelay: `${i * 60}ms` }}
+              style={{ animationDelay: `${i * 75}ms` }}
               type="button"
             >
-              <PillIcon
-                className={`size-3 ${isActive ? "text-primary" : "text-muted-foreground/50 group-hover:text-primary/60"}`}
-                strokeWidth={2}
-              />
-              <span className="max-w-[200px] truncate">{label}</span>
-              {med.form && (
-                <span
-                  className={`rounded-md px-1.5 py-0.5 text-[0.6rem] ${
-                    isActive
-                      ? "bg-primary/10 text-primary/80"
-                      : "bg-muted/50 text-muted-foreground/60"
-                  }`}
-                >
-                  {med.form}
-                </span>
-              )}
+              {/* Dismiss button */}
               {/* biome-ignore lint/a11y/useSemanticElements: nested inside a parent button — cannot nest <button> */}
               <span
                 aria-label={`Remove ${med.name}`}
-                className={`ml-0.5 inline-flex size-5 items-center justify-center rounded-full transition-colors ${
+                className={`absolute top-2 right-2 inline-flex size-6 items-center justify-center rounded-lg opacity-0 transition-all group-hover:opacity-100 ${
                   isActive
                     ? "text-primary/50 hover:bg-primary/20 hover:text-primary"
-                    : "text-muted-foreground/30 hover:bg-muted hover:text-foreground"
+                    : "text-muted-foreground/40 hover:bg-muted hover:text-foreground"
                 }`}
                 onClick={(e) => handleDismiss(e, i)}
                 onKeyDown={(e) => {
@@ -105,16 +91,83 @@ export function PrescriptionChips({
                 role="button"
                 tabIndex={0}
               >
-                <XIcon className="size-3" />
+                <XIcon className="size-3.5" />
               </span>
+
+              {/* Icon + Name row */}
+              <div className="flex w-full items-start gap-2.5 pr-5">
+                <div
+                  className={`mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors ${
+                    isActive
+                      ? "bg-primary/15 text-primary"
+                      : "bg-muted/60 text-muted-foreground/50 group-hover:bg-primary/10 group-hover:text-primary/70 dark:bg-white/[0.08]"
+                  }`}
+                >
+                  <PillIcon className="size-4" strokeWidth={2} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p
+                    className={`truncate font-semibold text-sm leading-tight ${
+                      isActive ? "text-primary" : "text-foreground/90"
+                    }`}
+                  >
+                    {med.name}
+                  </p>
+                  {med.strength && (
+                    <p
+                      className={`mt-0.5 truncate text-xs ${
+                        isActive
+                          ? "text-primary/60"
+                          : "text-muted-foreground/60"
+                      }`}
+                    >
+                      {med.strength}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Metadata row */}
+              <div className="flex w-full items-center gap-1.5">
+                {med.form && (
+                  <span
+                    className={`rounded-md px-1.5 py-0.5 font-medium text-[0.6rem] capitalize leading-none ${
+                      isActive
+                        ? "bg-primary/10 text-primary/70"
+                        : "bg-muted/50 text-muted-foreground/50 dark:bg-white/[0.06]"
+                    }`}
+                  >
+                    {med.form}
+                  </span>
+                )}
+                {med.quantity && (
+                  <span
+                    className={`rounded-md px-1.5 py-0.5 font-medium text-[0.6rem] leading-none ${
+                      isActive
+                        ? "bg-primary/10 text-primary/70"
+                        : "bg-muted/50 text-muted-foreground/50 dark:bg-white/[0.06]"
+                    }`}
+                  >
+                    Qty: {med.quantity}
+                  </span>
+                )}
+                <div className="flex-1" />
+                <SearchIcon
+                  className={`size-3 transition-opacity ${
+                    isActive
+                      ? "text-primary/50"
+                      : "text-muted-foreground/30 opacity-0 group-hover:opacity-100"
+                  }`}
+                />
+              </div>
             </button>
           );
         })}
       </div>
 
       {/* Hint */}
-      <p className="mt-2 text-[0.65rem] text-muted-foreground/40">
-        Click a medicine to search for alternatives and prices
+      <p className="mt-3 text-center text-[0.7rem] text-muted-foreground/40">
+        Tap a medicine to search for generic alternatives and compare prices
       </p>
     </div>
   );

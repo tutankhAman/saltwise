@@ -4,9 +4,9 @@ import { Button } from "@saltwise/ui/components/button";
 import { UploadIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState } from "react";
+import { compressImage } from "@/lib/image-compress";
 
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
-const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4 MB
 const PENDING_RX_KEY = "pendingPrescription";
 
 export function HomepageUploadButton() {
@@ -20,23 +20,14 @@ export function HomepageUploadButton() {
         return;
       }
 
-      if (file.size > MAX_FILE_SIZE) {
-        return;
-      }
-
       setProcessing(true);
 
       try {
-        const dataUri = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = () => reject(new Error("Failed to read file"));
-          reader.readAsDataURL(file);
-        });
+        const result = await compressImage(file);
 
         sessionStorage.setItem(
           PENDING_RX_KEY,
-          JSON.stringify({ image: dataUri, fileName: file.name })
+          JSON.stringify({ image: result.dataUri, fileName: file.name })
         );
 
         router.push("/search?prescription=pending");
@@ -66,7 +57,7 @@ export function HomepageUploadButton() {
         variant="outline"
       >
         <UploadIcon className="size-3.5" />
-        {processing ? "Reading..." : "Upload Prescription"}
+        {processing ? "Compressing..." : "Upload Prescription"}
       </Button>
       <input
         accept={ACCEPTED_TYPES.join(",")}

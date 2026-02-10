@@ -267,12 +267,14 @@ function SearchContent() {
             </div>
           </div>
 
-          {/* Prescription upload zone */}
-          <div className="mx-auto mt-4 max-w-xl">
-            <PrescriptionUpload
-              onMedicinesIdentified={handleMedicinesIdentified}
-            />
-          </div>
+          {/* Prescription upload zone — hidden once medicines are identified */}
+          {!hasPrescriptionMedicines && (
+            <div className="mx-auto mt-4 max-w-xl">
+              <PrescriptionUpload
+                onMedicinesIdentified={handleMedicinesIdentified}
+              />
+            </div>
+          )}
 
           {/* Pending prescription processing indicator */}
           {processingPrescription && (
@@ -283,20 +285,20 @@ function SearchContent() {
               </span>
             </div>
           )}
-
-          {/* Prescription medicine chips */}
-          {hasPrescriptionMedicines && !processingPrescription && (
-            <div className="mx-auto mt-5 max-w-xl">
-              <PrescriptionChips
-                activeIndex={activeChipIndex}
-                medicines={prescriptionMedicines}
-                onClearAll={handleClearAllChips}
-                onDismiss={handleChipDismiss}
-                onSelect={handleChipSelect}
-              />
-            </div>
-          )}
         </div>
+
+        {/* Prescription medicine chips — outside hero, same width as results */}
+        {hasPrescriptionMedicines && !processingPrescription && (
+          <div className="mb-8">
+            <PrescriptionChips
+              activeIndex={activeChipIndex}
+              medicines={prescriptionMedicines}
+              onClearAll={handleClearAllChips}
+              onDismiss={handleChipDismiss}
+              onSelect={handleChipSelect}
+            />
+          </div>
+        )}
 
         {/* Results area */}
         <div className="space-y-6">

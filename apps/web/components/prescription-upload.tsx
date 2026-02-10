@@ -11,21 +11,30 @@ import {
   XIcon,
 } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
+import { compressImage } from "@/lib/image-compress";
 import type { PrescriptionMedicine } from "@/lib/types";
 
-type UploadStatus = "idle" | "reading" | "parsing" | "done" | "error";
+type UploadStatus =
+  | "idle"
+  | "reading"
+  | "compressing"
+  | "parsing"
+  | "done"
+  | "error";
 
 interface PrescriptionUploadProps {
   onMedicinesIdentified: (medicines: PrescriptionMedicine[]) => void;
 }
 
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
-const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4 MB
+const MAX_COMPRESSED_BYTES = 4 * 1024 * 1024; // 4 MB (Llama vision cap)
 
 function getStatusLabel(status: UploadStatus): string {
   switch (status) {
     case "reading":
       return "Reading image...";
+    case "compressing":
+      return "Compressing image...";
     case "parsing":
       return "Identifying medicines via AI...";
     case "done":
@@ -108,27 +117,28 @@ export function PrescriptionUpload({
       setErrorMessage(null);
       setMedicineCount(0);
 
-      // Validate file size
-      if (file.size > MAX_FILE_SIZE) {
-        setStatus("error");
-        setErrorMessage(
-          `File too large (${formatFileSize(file.size)}). Maximum is 4 MB.`
-        );
-        return;
-      }
-
-      // --- Phase 1: Read file as base64 ---
+      // --- Phase 1: Read & compress image ---
       setStatus("reading");
-      setProgress(15);
+      setProgress(10);
 
       let dataUri: string;
       try {
-        dataUri = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = () => reject(new Error("Failed to read file"));
-          reader.readAsDataURL(file);
-        });
+        setStatus("compressing");
+        setProgress(20);
+
+        const result = await compressImage(file);
+
+        // Check if compressed result still exceeds Llama's 4 MB cap
+        if (result.compressedSize > MAX_COMPRESSED_BYTES) {
+          setStatus("error");
+          setErrorMessage(
+            `Image too large even after compression (${formatFileSize(result.compressedSize)}). Try a lower-resolution photo.`
+          );
+          setProgress(0);
+          return;
+        }
+
+        dataUri = result.dataUri;
       } catch {
         setStatus("error");
         setErrorMessage("Could not read the image file.");
@@ -136,7 +146,7 @@ export function PrescriptionUpload({
         return;
       }
 
-      setProgress(30);
+      setProgress(35);
 
       // --- Phase 2: Send to OCR API ---
       setStatus("parsing");
@@ -263,7 +273,8 @@ export function PrescriptionUpload({
     }
   }, []);
 
-  const isProcessing = status === "reading" || status === "parsing";
+  const isProcessing =
+    status === "reading" || status === "compressing" || status === "parsing";
 
   const dropZoneClasses = (() => {
     const base =
@@ -319,7 +330,7 @@ export function PrescriptionUpload({
                   >
                     browse
                   </button>{" "}
-                  &middot; JPEG, PNG, WebP &middot; max 4 MB
+                  &middot; JPEG, PNG, WebP &middot; auto-compressed
                 </p>
               </div>
             )}
@@ -360,7 +371,7 @@ export function PrescriptionUpload({
                   {errorMessage ?? getStatusLabel(status)}
                 </p>
                 <p className="mt-0.5 text-muted-foreground text-xs">
-                  Accepted: JPEG, PNG, WebP images up to 4 MB
+                  Accepted: JPEG, PNG, WebP (auto-compressed)
                 </p>
               </div>
             )}
