@@ -9,11 +9,8 @@ export default function Home() {
   return (
     <div className="flex flex-col">
       <MeshBackground />
-      {/* Hero Section */}
       <section className="relative flex min-h-[85vh] flex-col items-center justify-center overflow-hidden px-4 pt-40 pb-24 text-center sm:px-6 md:pt-56 lg:px-8">
-        {/* Background Floating Assets */}
         <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-          {/* Pill Circle - Top Left */}
           <div className="fade-in slide-in-from-left-10 absolute top-[30%] left-[15%] h-16 w-16 animate-in opacity-60 delay-300 duration-1000 sm:h-24 sm:w-24">
             <Image
               alt="Pill Circle"
@@ -23,7 +20,6 @@ export default function Home() {
             />
           </div>
 
-          {/* Pill Squircle - Bottom Right */}
           <div className="fade-in slide-in-from-right-10 absolute right-[15%] bottom-[35%] h-20 w-20 animate-in opacity-40 delay-500 duration-1000 sm:h-28 sm:w-28">
             <Image
               alt="Pill Squircle"
@@ -33,7 +29,6 @@ export default function Home() {
             />
           </div>
 
-          {/* Pill Triangle - Top Rightish */}
           <div className="fade-in zoom-in-50 absolute top-[22%] right-[22%] h-14 w-14 animate-in opacity-35 delay-700 duration-1000 sm:h-20 sm:w-20">
             <Image
               alt="Pill Triangle"
@@ -44,7 +39,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Foreground Floating Assets - Bottle */}
         <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center overflow-hidden">
           <div className="fade-in zoom-in-50 h-[160px] w-[160px] -translate-y-36 animate-in opacity-100 transition-all duration-1000 ease-out sm:h-[320px] sm:w-[320px] lg:-translate-y-20 dark:opacity-50">
             <Image
@@ -68,7 +62,6 @@ export default function Home() {
             medicines. Search by name or upload a prescription.
           </p>
 
-          {/* Search Area - given more prominence */}
           <div className="mx-auto flex w-full max-w-xl flex-col items-center gap-3 pt-2">
             <QuickSearch />
           </div>

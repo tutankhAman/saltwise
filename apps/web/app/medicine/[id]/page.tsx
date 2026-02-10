@@ -35,7 +35,6 @@ import {
   PillIcon,
   ShieldAlertIcon,
   ShieldCheckIcon,
-  SparklesIcon,
   StoreIcon,
   SyringeIcon,
   TagIcon,
@@ -771,7 +770,14 @@ function AIExplanationCard({
   return (
     <GlassCard delay={delay}>
       <div className="mb-3 flex items-center gap-2">
-        <SparklesIcon className="size-3.5 text-primary/70" />
+        {/* biome-ignore lint/performance/noImgElement: salty mascot */}
+        <img
+          alt="Salty"
+          className="size-4 object-contain"
+          height={16}
+          src="/salty.png"
+          width={16}
+        />
         <h3 className="font-heading font-semibold text-xs tracking-tight">
           Why is this cheaper?
         </h3>

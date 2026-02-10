@@ -12,7 +12,7 @@ export function MeshBackground({
   colors = ["#ffffff", "#f0fdf4", "#dcfce7", "#f0fff4", "#e6fffa", "#ffffff"],
   opacity = 1,
 }: MeshBackgroundProps) {
-  const [dimensions, setDimensions] = useState({ width: 0, height: 0 }); // Initial state 0 to prevent hydration mismatch or flash
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {

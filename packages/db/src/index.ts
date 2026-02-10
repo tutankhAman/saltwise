@@ -1,9 +1,9 @@
 import { SQL } from "bun";
 import { drizzle } from "drizzle-orm/bun-sql";
 import { env } from "./env";
-import { posts } from "./schema";
+import { conversations, messages } from "./schema";
 
-const schema = { posts };
+const schema = { conversations, messages };
 
 const globalForDb = globalThis as unknown as {
   client: SQL | undefined;
