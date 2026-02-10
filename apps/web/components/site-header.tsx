@@ -9,22 +9,14 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@saltwise/ui/components/sheet";
-import {
-  HistoryIcon,
-  MenuIcon,
-  ScaleIcon,
-  SearchIcon,
-  UploadIcon,
-} from "lucide-react";
+import { HistoryIcon, MenuIcon, SearchIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 const navLinks = [
-  { href: "/upload", label: "Upload", icon: UploadIcon },
   { href: "/search", label: "Search", icon: SearchIcon },
-  { href: "/compare", label: "Compare", icon: ScaleIcon },
   { href: "/history", label: "History", icon: HistoryIcon },
 ] as const;
 
