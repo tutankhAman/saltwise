@@ -105,11 +105,11 @@ async function fetchConversationHistory(conversationId: string) {
 
 function saveAssistantResponse(
   conversationId: string,
-  fullResponse: Promise<string>,
+  fullResponse: Promise<{ text: string; truncated: boolean }>,
   log: Logger
 ) {
   fullResponse
-    .then(async (content) => {
+    .then(async ({ text: content, truncated }) => {
       if (content.length === 0) {
         log.warn({ conversationId }, "Empty response from Groq");
         return;
@@ -118,10 +118,10 @@ function saveAssistantResponse(
         await db.insert(messages).values({
           conversationId,
           role: "assistant" as const,
-          content,
+          content: truncated ? `${content}\n\n[Response interrupted]` : content,
         });
         log.debug(
-          { conversationId, responseLength: content.length },
+          { conversationId, responseLength: content.length, truncated },
           "Assistant message saved"
         );
       } catch (error) {
@@ -234,15 +234,38 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     // 5. Save the user's message
-    try {
-      await db.insert(messages).values({
-        conversationId: activeConversationId,
-        role: "user" as const,
-        content: message.trim(),
-      });
-      log.debug({ conversationId: activeConversationId }, "User message saved");
-    } catch (error) {
-      log.error({ err: error }, "Failed to save user message");
+    let saved = false;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        await db.insert(messages).values({
+          conversationId: activeConversationId,
+          role: "user" as const,
+          content: message.trim(),
+        });
+        log.debug(
+          { conversationId: activeConversationId },
+          "User message saved"
+        );
+        saved = true;
+        break;
+      } catch (error) {
+        if (attempt === 3) {
+          log.error(
+            { err: error, attempt },
+            "Failed to save user message after retries"
+          );
+        } else {
+          log.warn(
+            { err: error, attempt },
+            "Failed to save user message, retrying..."
+          );
+          await new Promise((resolve) => setTimeout(resolve, 100 * attempt));
+        }
+      }
+    }
+
+    if (!saved) {
+      return errorResponse("Failed to save message. Please try again.", 500);
     }
 
     // 6. Fetch conversation history
@@ -259,7 +282,8 @@ export async function POST(request: Request): Promise<Response> {
 
     const { stream, fullResponse } = await createSaltyStream(
       orderedHistory,
-      message.trim()
+      message.trim(),
+      request.signal
     );
 
     // 8. Save the assistant response when stream completes (fire-and-forget)

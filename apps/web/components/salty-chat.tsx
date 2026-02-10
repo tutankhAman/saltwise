@@ -2,7 +2,7 @@
 
 import type { AuthUser } from "@saltwise/ui/auth/auth-island";
 import { AuthIsland } from "@saltwise/ui/auth/auth-island";
-import { Loader2Icon, SendIcon } from "lucide-react";
+import { Loader2Icon, SendIcon, XIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MAX_MESSAGE_LENGTH } from "@/lib/ai/salty";
 import { createClient } from "@/lib/supabase/client";
@@ -49,16 +49,6 @@ async function readStream(
   }
 }
 
-function initiateSignIn() {
-  const supabase = createClient();
-  supabase.auth.signInWithOAuth({
-    provider: "google",
-    options: {
-      redirectTo: `${window.location.origin}/auth/callback`,
-    },
-  });
-}
-
 function EmptyState() {
   return (
     <div className="flex flex-col items-center gap-2 py-4 text-center">
@@ -94,10 +84,7 @@ function ChatError({
   );
 }
 
-export function SaltyChat({
-  initialMessage,
-  onClose: _onClose,
-}: SaltyChatProps) {
+export function SaltyChat({ initialMessage, onClose }: SaltyChatProps) {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
@@ -109,6 +96,26 @@ export function SaltyChat({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  const initiateSignIn = useCallback(async () => {
+    try {
+      const supabase = createClient();
+      const { error: signInError } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+
+      if (signInError) {
+        throw signInError;
+      }
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Failed to initiate sign in";
+      setError(message);
+    }
+  }, []);
 
   useEffect(() => {
     const supabase = createClient();
@@ -249,7 +256,21 @@ export function SaltyChat({
   }, [authLoading, initialMessage, sendMessage]);
 
   return (
-    <div className="flex flex-col">
+    <div className="flex h-full flex-col">
+      {onClose && (
+        <div className="flex items-center justify-between border-b px-4 py-2">
+          <span className="font-semibold text-sm">Salty Chat</span>
+          <button
+            aria-label="Close chat"
+            className="rounded-full p-1 hover:bg-muted"
+            onClick={onClose}
+            type="button"
+          >
+            <XIcon className="size-4" />
+          </button>
+        </div>
+      )}
+
       {showAuthIsland && (
         // biome-ignore lint/a11y/useKeyWithClickEvents: backdrop dismiss
         // biome-ignore lint/a11y/noNoninteractiveElementInteractions: backdrop dismiss

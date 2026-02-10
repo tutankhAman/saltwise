@@ -218,7 +218,13 @@ export function QuickSearch() {
               `}
             >
               {mode === "salty" || isSaltyQuery ? (
-                <SparklesIcon className="size-[1.15rem]" strokeWidth={2.5} />
+                // biome-ignore lint/performance/noImgElement: salty mascot
+                // biome-ignore lint/correctness/useImageSize: skip
+                <img
+                  alt="Salty"
+                  className="size-6 object-contain"
+                  src="/salty.png"
+                />
               ) : (
                 <SearchIcon className="size-[1.15rem]" strokeWidth={2.5} />
               )}

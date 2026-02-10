@@ -13,7 +13,7 @@ import {
   InputGroupInput,
 } from "@saltwise/ui/components/input-group";
 import { Skeleton } from "@saltwise/ui/components/skeleton";
-import { PillIcon, SearchIcon, SparklesIcon, XIcon } from "lucide-react";
+import { PillIcon, SearchIcon, XIcon } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { MedicineCard } from "@/components/medicine-card";
@@ -239,7 +239,14 @@ function SearchContent() {
                 {/* Popular searches */}
                 <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
                   <span className="flex items-center gap-1.5 text-muted-foreground/50 text-xs">
-                    <SparklesIcon className="size-3" />
+                    {/* biome-ignore lint/performance/noImgElement: salty mascot */}
+                    <img
+                      alt="Salty"
+                      className="size-3.5 object-contain opacity-70 grayscale transition-all group-hover:grayscale-0"
+                      height={14}
+                      src="/salty.png"
+                      width={14}
+                    />
                     Popular
                   </span>
                   {["Dolo 650", "Pan 40", "Augmentin", "Shelcal"].map(

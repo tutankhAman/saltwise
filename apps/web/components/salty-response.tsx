@@ -27,7 +27,7 @@ function Avatar({
     return (
       // biome-ignore lint/performance/noImgElement: avatar
       <img
-        alt=""
+        alt="User avatar"
         className="size-full object-cover"
         height={28}
         referrerPolicy="no-referrer"
