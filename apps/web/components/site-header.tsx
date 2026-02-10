@@ -48,8 +48,8 @@ export function SiteHeader() {
             src="/logo.png"
             width={28}
           />
-          <span className="font-heading text-base tracking-tight">
-            Saltwise
+          <span className="font-bold font-heading text-base tracking-tight">
+            Salt<span className="text-primary">wise</span>
           </span>
         </Link>
 
