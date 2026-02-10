@@ -27,153 +27,163 @@ Both developers work in parallel. Sync points are marked with a handshake icon. 
 
 **BE: Database Schema + Seed Data**
 - [ ] Design and write Drizzle schema in `packages/db/src/schema.ts`:
-  - `saltwise_salts` (id, name, aliases, description)
+  - `saltwise_salts` (id, name, aliases, description, is_nti)
   - `saltwise_dosage_forms` (id, name - tablet, capsule, syrup, etc.)
   - `saltwise_manufacturers` (id, name, country, gmp_certified)
   - `saltwise_drugs` (id, brand_name, salt_id, strength, dosage_form_id, manufacturer_id)
   - `saltwise_drug_interactions` (drug_a_salt_id, drug_b_salt_id, severity, description)
-  - `saltwise_prescriptions` (id, user_id, status, image_url, created_at)
-  - `saltwise_prescription_items` (id, prescription_id, raw_name, parsed_salt_id, parsed_drug_id, strength, dosage_form, quantity, is_substitutable)
   - `saltwise_drug_prices` (id, drug_id, pharmacy_name, price, pack_size, price_per_unit, source_url, fetched_at, confidence)
+  - `saltwise_users` (id, supabase_auth_id, email, created_at)
+  - `saltwise_saved_searches` (id, user_id, query, drug_id, created_at)
+  - `saltwise_search_history` (id, user_id, query, result_drug_id, savings_found, created_at)
+  - `saltwise_saved_medicines` (id, user_id, drug_id, notes, created_at)
+  - `saltwise_prescriptions` (id, user_id, status, image_url, created_at)
+  - `saltwise_prescription_items` (id, prescription_id, raw_name, parsed_salt_id, parsed_drug_id, strength, dosage_form, quantity)
 - [ ] Run `bun run db:gen` and `bun run db:push` to apply migrations.
 - [ ] Create seed script with ~50 common Indian medicines (salts, brands, manufacturers).
 
-**FE: App Shell + Layout**
-- [ ] Update root layout metadata (title: "Saltwise", description).
-- [ ] Create app navigation layout:
-  - Header with logo, nav links (Upload, Search, History).
-  - Responsive sidebar/mobile menu using shadcn Sheet component.
-- [ ] Set up route structure:
-  - `/` - Landing/dashboard
-  - `/upload` - Prescription upload
-  - `/prescription/[id]` - Prescription results
-  - `/search` - Drug search
-  - `/compare` - Price comparison
-- [ ] Configure theme colors (medical/pharma palette - blues, greens, whites).
+**FE: App Shell + Landing Page**
+- [ ] Simplify navigation: Remove Upload, Compare links. Keep Search and History in header.
+- [ ] Update route structure:
+  - `/` - Landing page with search
+  - `/search?q=...` - Core results page
+  - `/history` - Search history, saved medicines, savings tracker (auth required)
+- [ ] Remove stub pages (`/upload`, `/compare`, `/prescription/[id]`).
+- [ ] Polish landing page:
+  - Hero section with value proposition.
+  - Prominent search bar (existing QuickSearch component).
+  - "Upload Prescription" secondary CTA below search.
+  - Stats section (placeholder).
 
 ---
 
-### Hour 2 (1:00 - 2:00) - Drug Data + Landing Page
+### Hour 2 (1:00 - 2:00) - Drug Data + Search API
 
 **BE: Seed Data + Drug Search API**
 - [ ] Finish and run seed script (salts, drugs, interactions, sample prices).
 - [ ] `GET /api/drugs/search?q=` - Full-text search on drug name and salt name.
 - [ ] `GET /api/salts/search?q=` - Search active ingredients.
 - [ ] `GET /api/salts/[id]/brands` - All brands for a given salt.
+- [ ] `GET /api/drugs/[id]/alternatives` - For a given drug:
+  - Find all drugs with the same salt_id + strength + dosage_form.
+  - Sort by: safety tier > regulatory trust > price.
+  - Return with price comparison data.
 
-**FE: Landing Page + Drug Search**
-- [ ] Build landing page:
-  - Hero section explaining Saltwise value proposition.
-  - Quick search bar (search drugs by name).
-  - "Upload Prescription" CTA button.
-  - Stats section (placeholder: "X medicines analyzed", "Y average savings").
-- [ ] Build drug search page (`/search`):
-  - Search input with debounced API calls.
-  - Results list showing drug name, salt, strength, manufacturer.
-  - Click-through to drug detail.
+**FE: Search Results Page - Core Layout**
+- [ ] Build `/search` results page structure:
+  - Search bar at top (persistent, pre-filled with query).
+  - Loading skeleton while fetching.
+  - Medicine Identity Card (brand, salt, strength, form, manufacturer).
+  - Alternatives section (list of generic equivalents).
+  - Price comparison table placeholder.
+- [ ] Wire search bar to `GET /api/drugs/search?q=`.
+- [ ] Handle empty states and "no results found".
 
 ---
 
-### Hour 3 (2:00 - 3:00) - Prescription Upload + AI Parsing Setup
+### Hour 3 (2:00 - 3:00) - Alternatives Engine + AI Setup
 
-**BE: Prescription Upload + Groq AI Parsing**
-- [ ] `POST /api/prescriptions/upload` - Accept image upload, store in Supabase Storage, create prescription record.
-- [ ] `POST /api/prescriptions/parse` - AI parsing pipeline:
-  - Send image to Groq (LLaMA Vision) via Vercel AI SDK.
-  - Structured output prompt: extract medicine names, strengths, dosage forms, quantities, schedule.
-  - Fuzzy-match extracted names against `saltwise_drugs` and `saltwise_salts` tables.
-  - Create `prescription_items` records with parsed data.
-  - Return parsed prescription with confidence scores per item.
+**BE: Generic Alternatives + Interaction Checks**
+- [ ] `GET /api/drugs/[id]/info` - Detailed drug information (salt details, side effects, storage).
+- [ ] `POST /api/drugs/interactions` - Accept array of salt_ids, return all pairwise interactions.
+- [ ] Add NTI drug list to seed data (warfarin, lithium, phenytoin, etc.) with `is_nti: true`.
+- [ ] Add interaction seed data for common dangerous combinations.
 - [ ] Install and configure `ai`, `@ai-sdk/groq` packages.
 
-**FE: Prescription Upload Page**
-- [ ] Build upload page (`/upload`):
-  - Drag-and-drop zone + file picker (accept images, PDFs).
-  - Upload progress indicator.
-  - "Analyzing prescription..." loading state with skeleton UI.
-  - Preview of uploaded image.
-- [ ] Wire up upload to `POST /api/prescriptions/upload`.
+**FE: Search Results - Alternatives UI**
+- [ ] Build alternative medicine cards:
+  - Side-by-side: Original vs Alternative (salt, strength, manufacturer, price).
+  - Savings badge (amount and percentage).
+  - Safety tier label ("Exact Generic" / "Therapeutic Equivalent").
+  - NTI warning badge for non-substitutable drugs.
+- [ ] Total cost comparison bar (original vs optimized).
+- [ ] "Why is this safe?" expandable section per alternative (placeholder for AI text).
 
 ---
 
 ### SYNC POINT (3:00) - 5 min
 
-- Verify upload -> parse flow works end-to-end with a test prescription image.
+- Verify search -> results -> alternatives flow works end-to-end.
 - Confirm API response shapes match FE expectations.
 
 ---
 
-### Hour 4 (3:00 - 4:00) - Prescription Results + Alternatives
+### Hour 4 (3:00 - 4:00) - Unified Search + AI Query Routing
 
-**BE: Generic Alternatives Engine**
-- [ ] `GET /api/drugs/[id]/alternatives` - For a given drug:
-  - Find all drugs with the same salt_id + strength + dosage_form.
-  - Exclude the original drug.
-  - Sort by: safety tier > regulatory trust > price.
-  - Return with price comparison data.
-- [ ] `POST /api/prescriptions/[id]/optimize` - For a full prescription:
-  - For each item, find alternatives.
-  - Calculate total original cost vs optimized cost.
-  - Flag non-substitutable items (NTI drugs, doctor-marked).
-  - Return optimization summary with per-item alternatives.
-- [ ] Add NTI drug list to seed data (warfarin, lithium, phenytoin, etc.) with `is_nti: true` flag on salts.
+**BE: Unified Search Endpoint + LLM Integration**
+- [ ] `GET /api/search?q=&type=` - Unified search endpoint:
+  - Classifies query: medicine lookup vs natural language question.
+  - Medicine lookups -> DB search + alternatives + pricing.
+  - NL questions -> Groq LLM with drug DB context.
+  - Returns structured response for both types.
+- [ ] `POST /api/ai/chat` - Streaming conversational endpoint:
+  - Context-aware: knows the current search and alternatives.
+  - Can answer "Is this generic as effective?", "Why is this cheaper?", etc.
+  - Uses Vercel AI SDK streaming.
+- [ ] `POST /api/ai/explain` - Generate plain-language explanation for a substitution.
 
-**FE: Prescription Results Page**
-- [ ] Build prescription results page (`/prescription/[id]`):
-  - Parsed prescription summary (patient info if available, date, doctor).
-  - List of prescription items as cards:
-    - Original medicine (name, salt, strength, form).
-    - Parsed confidence indicator.
-    - "Finding alternatives..." loading state.
-  - Call optimize endpoint on page load.
-
----
-
-### Hour 5 (4:00 - 5:00) - Cost Comparison UI + Interaction Checks
-
-**BE: Drug Interaction Checker**
-- [ ] `POST /api/drugs/interactions` - Accept array of salt_ids, return all pairwise interactions.
-- [ ] Integrate interaction check into `/api/prescriptions/[id]/optimize`:
-  - Check interactions between all items in the prescription.
-  - Include interaction warnings in response.
-  - Block substitutions that would introduce new interactions.
-- [ ] Add interaction seed data for common dangerous combinations (e.g., warfarin + aspirin, metformin + contrast dye).
-
-**FE: Optimization Results + Comparisons**
-- [ ] Enhance prescription results page with optimization data:
-  - Per-item alternative cards:
-    - Side-by-side: Original vs Recommended (salt, strength, manufacturer, price).
-    - Savings badge (amount and percentage).
-    - "Why this is safe" expandable explanation.
-    - "Keep original" / "Switch to generic" toggle.
-  - Total cost comparison bar:
-    - Original total vs Optimized total.
-    - Total savings highlighted.
-  - Interaction warnings section (yellow/red alert banners).
+**FE: AI Integration in Search Results**
+- [ ] Route search bar through `/api/search` (unified endpoint).
+- [ ] Handle two result types:
+  - Structured medicine results -> render cards/tables.
+  - LLM text response -> render streamed markdown answer.
+- [ ] Add inline AI chat panel to results page:
+  - Slide-out or bottom sheet.
+  - Suggested questions contextual to the searched medicine.
+  - Streaming responses.
 
 ---
 
-### Hour 6 (5:00 - 6:00) - Firecrawl Price Scraping + Price UI
+### Hour 5 (4:00 - 5:00) - Prescription Upload + Price Scraping
 
-**BE: Firecrawl Integration for Live Prices**
+**BE: Prescription OCR + Firecrawl**
+- [ ] `POST /api/search/prescription` - Accept image upload:
+  - Send image to Groq (LLaMA Vision) via Vercel AI SDK.
+  - Extract medicine names, strengths, dosage forms, quantities.
+  - Fuzzy-match against drug DB.
+  - Return array of parsed medicines (same shape as search results).
 - [ ] Install and configure `@mendable/firecrawl-js`.
-- [ ] Build scraping service for 2-3 pharmacy sites:
-  - 1mg.com product pages.
-  - PharmEasy search results.
-  - (Optional) Netmeds.
-- [ ] `POST /api/prices/refresh` - Trigger price scrape for a given drug:
-  - Firecrawl scrapes target URLs.
-  - Parse HTML/markdown for price, pack size, availability.
-  - Upsert into `saltwise_drug_prices` with confidence level and timestamp.
+- [ ] Build scraping service for 2-3 pharmacy sites (1mg, PharmEasy).
+- [ ] `POST /api/prices/refresh` - Trigger price scrape for a given drug.
 - [ ] Add caching layer: skip scrape if price data is < 6 hours old.
 
-**FE: Detailed Price Comparison View**
-- [ ] Build price comparison page/modal (`/compare` or inline):
-  - Table view: Drug name | Pharmacy | Price | Pack Size | Per-Unit | Stock.
+**FE: Prescription Upload + Price UI**
+- [ ] Add prescription upload zone to search results page:
+  - Small drag-and-drop area or "Upload Prescription" button.
+  - Upload progress indicator.
+  - Parsed medicines appear as multiple result cards on the same page.
+  - Aggregate savings displayed at the top.
+- [ ] Build price comparison table within each medicine card:
+  - Pharmacy name | Price | Pack Size | Per-Unit | Stock.
   - Sort by price, filter by availability.
-  - "Refresh prices" button (triggers scrape).
   - Price confidence indicator (live/recent/cached/estimated).
-  - Split-pharmacy suggestion: "Buy Drug A from Pharmacy X, Drug B from Pharmacy Y to save Z more."
+  - "Refresh prices" button.
+
+---
+
+### Hour 6 (5:00 - 6:00) - Safety Information + Drug Details
+
+**BE: Drug Info + Safety APIs**
+- [ ] Expand `GET /api/drugs/[id]/info` with:
+  - Common and rare side effects.
+  - Pregnancy/lactation risk category.
+  - Age-based warnings.
+  - Storage instructions.
+  - Mechanism of action (brief).
+- [ ] Integrate interaction checking into the unified search response:
+  - When prescription upload returns multiple medicines, auto-check all pairwise interactions.
+  - Include interaction warnings in the response.
+
+**FE: Safety & Drug Info Sections**
+- [ ] Build drug info expandable section within results:
+  - Salt info, mechanism of action, drug class.
+  - Side effects (common vs rare, collapsible).
+  - Warnings (pregnancy, age, interactions).
+  - "How to take" instructions.
+- [ ] Interaction warning banners:
+  - Yellow for moderate, red for severe/contraindicated.
+  - Clear explanation of what interacts with what.
+  - Appears when multiple medicines are in context (prescription upload).
 
 ---
 
@@ -183,133 +193,118 @@ Both developers work in parallel. Sync points are marked with a handshake icon. 
 
 ### SYNC POINT (6:30) - 10 min
 
-- Demo full flow: upload -> parse -> optimize -> price compare.
+- Demo full flow: search -> results with alternatives + prices + AI.
+- Demo prescription upload -> multi-medicine results.
 - Identify bugs, mismatches, missing data.
 - Prioritize remaining hours.
 
 ---
 
-### Hour 7 (6:30 - 7:30) - Patient Explanations + AI Chat
+### Hour 7 (6:30 - 7:30) - Auth + User Features
+
+**BE: Authentication + Saved Data + History**
+- [ ] Wire up Supabase Auth middleware (session refresh on requests).
+- [ ] Create user record on first login (link to Supabase Auth).
+- [ ] Auto-log searches to `search_history` table for authenticated users.
+- [ ] `GET /api/history` - Paginated search history for the user.
+- [ ] `GET /api/history/savings` - Cumulative savings stats across all searches.
+- [ ] `POST /api/saved-medicines` - Bookmark a medicine.
+- [ ] `GET /api/saved-medicines` - Retrieve user's bookmarked medicines.
+- [ ] `DELETE /api/saved-medicines/[id]` - Remove a bookmark.
+- [ ] `POST /api/medicine-profile` - Save user's current medications.
+- [ ] `GET /api/medicine-profile` - Get user's medicine profile (for interaction checking).
+
+**FE: Auth + History Page + Personalization**
+- [ ] Wire AuthIsland component into the site header.
+- [ ] Build `/history` page (auth required):
+  - Search history list: chronological, with query text, matched medicine, and timestamp.
+  - Click any history entry to re-run the search.
+  - Saved medicines section: bookmarked drugs with quick-view info.
+  - Prescription upload history: past uploads with parsed results summary.
+  - Cumulative savings tracker: total potential savings found, number of searches.
+  - "My Medications" profile section: current medications for interaction checking.
+  - Auth gate: redirect unauthenticated users to sign-in prompt.
+- [ ] Add "Save" / "Bookmark" buttons to medicine cards on search results (requires auth).
+- [ ] Show recent searches in the landing page search bar dropdown (authenticated users).
+
+---
+
+### Hour 8 (7:30 - 8:30) - AI Explanations + Polish
 
 **BE: AI Explanation Generation**
-- [ ] `POST /api/ai/explain` - Generate plain-language explanation for a substitution:
-  - Input: original drug, recommended alternative, reason.
+- [ ] Enhance `/api/ai/explain` with:
+  - Input: original drug, recommended alternative, safety data.
   - Output: patient-friendly text explaining why the switch is safe.
-  - Use Groq for fast inference with streaming.
-- [ ] `POST /api/ai/chat` - Conversational endpoint for patient questions:
-  - Context-aware: knows the current prescription and alternatives.
-  - Can answer "Is this generic as effective?", "Why is this cheaper?", etc.
-  - Uses Vercel AI SDK streaming.
+  - Template fallback when LLM is unavailable.
+- [ ] Add explanation generation to the alternatives response (lazy-loaded per alternative).
+- [ ] Rate limiting on AI endpoints.
+- [ ] Error response standardization across all routes.
 
-**FE: AI Chat Interface + Explanations**
-- [ ] Add explanation bubbles to each substitution card:
+**FE: Explanations + UI Polish**
+- [ ] Add AI explanation bubbles to each alternative card:
   - "Why is this recommended?" -> expandable plain-language text.
-  - Generated via `/api/ai/explain` on demand.
-- [ ] Build chat panel (slide-out or bottom sheet):
-  - Message input with send button.
-  - Streaming AI responses.
-  - Suggested questions: "Is this safe?", "What are the side effects?", "Why is it cheaper?"
-  - Context badge showing which prescription is being discussed.
+  - Streamed from `/api/ai/explain` on demand (not pre-loaded).
+- [ ] Suggested questions below each medicine result:
+  - "Is this safe?", "What are the side effects?", "Why is it cheaper?"
+  - Click to ask -> opens AI chat with the question.
+- [ ] Polish animations and transitions on the results page.
 
 ---
 
-### Hour 8 (7:30 - 8:30) - Doctor Controls + Audit Trail
-
-**BE: Substitution Controls + Logging**
-- [ ] Add `substitution_logs` table tracking:
-  - original_drug_id, recommended_drug_id, action (accepted/rejected/kept_original), rationale, timestamp.
-- [ ] `PATCH /api/prescription-items/[id]` - Mark item as non-substitutable.
-- [ ] `POST /api/substitutions/[id]/accept` - Accept a substitution (log it).
-- [ ] `POST /api/substitutions/[id]/reject` - Reject a substitution (log reason).
-- [ ] `GET /api/prescriptions/[id]/audit` - Full audit trail for a prescription.
-
-**FE: Action Buttons + History Page**
-- [ ] Add action buttons to each substitution:
-  - "Accept Generic" (green) - saves choice, logs.
-  - "Keep Original" (neutral) - logs preference.
-  - "Not Substitutable" (lock icon) - marks as doctor-required.
-- [ ] Build prescription history page (`/history`):
-  - List of past prescriptions with dates and savings.
-  - Click to view full details and audit trail.
-  - Total savings counter across all prescriptions.
-
----
-
-### Hour 9 (8:30 - 9:30) - Adherence + Dosage Info
-
-**BE: Adherence & Drug Info APIs**
-- [ ] `GET /api/drugs/[id]/info` - Detailed drug information:
-  - Salt details, mechanism of action (from seed data).
-  - Common side effects.
-  - Pill appearance description (for identification when switching brands).
-  - Storage instructions.
-- [ ] `POST /api/adherence/schedule` - Generate dosage schedule from prescription:
-  - Parse frequency (BD, TDS, OD, SOS, etc.).
-  - Return structured schedule with times and reminders.
-- [ ] `GET /api/adherence/today` - Today's medication schedule for a user.
-
-**FE: Drug Info Cards + Schedule View**
-- [ ] Build drug information modal/page:
-  - Salt info, manufacturer, regulatory status.
-  - Side effects (common vs rare).
-  - Pill appearance and identification tips.
-  - "How to take" instructions.
-- [ ] Build medication schedule view:
-  - Timeline/calendar view of daily doses.
-  - Checkboxes for dose tracking.
-  - Next dose reminder display.
-  - Visual pill identifier per medicine.
-
----
-
-### Hour 10 (9:30 - 10:30) - Polish + Error Handling
+### Hour 9 (8:30 - 9:30) - Error Handling + Edge Cases
 
 **BE: Validation + Edge Cases**
 - [ ] Add Zod validation schemas for all API inputs.
 - [ ] Handle edge cases:
-  - Unparseable prescription (return confidence < threshold, ask for manual entry).
   - Drug not found in database (flag for manual review, suggest closest match).
   - No alternatives available (return original with explanation).
   - Stale price data (show warning, offer refresh).
-- [ ] Rate limiting on AI endpoints.
-- [ ] Error response standardization (consistent error format across all routes).
+  - Unparseable prescription (return confidence < threshold, ask for retry).
+  - LLM timeout/failure (graceful degradation to DB-only results).
+- [ ] Add database indexes for common queries (salt name search, drug lookup by salt_id).
+- [ ] Optimize N+1 queries in alternatives lookup (batch queries).
 
 **FE: Error States + Loading States**
-- [ ] Add error boundaries and error UI for all pages.
+- [ ] Error boundaries and error UI for all sections.
 - [ ] Empty states:
-  - No prescriptions yet -> "Upload your first prescription" CTA.
-  - No alternatives found -> "This is already the most cost-effective option."
-  - Drug not in database -> "We couldn't identify this medicine. Enter details manually."
+  - No results -> "We couldn't find this medicine. Try searching by salt name."
+  - No alternatives -> "This is already the most cost-effective option."
+  - No prices -> "Price data unavailable. Check back later."
+  - Prescription parse failed -> "We couldn't read this prescription. Try a clearer image."
 - [ ] Loading skeletons for all data-dependent sections.
-- [ ] Toast notifications for actions (substitution accepted, price refreshed, etc.).
-- [ ] Form validation with inline error messages.
+- [ ] Toast notifications for actions (search saved, prices refreshed, etc.).
 
 ---
 
-### Hour 11 (10:30 - 11:30) - Responsive Design + Mobile + Final Integration
+### Hour 10 (9:30 - 10:30) - Responsive Design + Mobile
 
 **BE: Performance + Final APIs**
-- [ ] Add database indexes for common queries (salt name search, drug lookup by salt_id).
-- [ ] Optimize N+1 queries in prescription optimization (batch alternatives lookup).
-- [ ] `GET /api/dashboard/stats` - Summary stats for the landing page:
-  - Total prescriptions analyzed.
+- [ ] `GET /api/stats` - Summary stats for the landing page:
+  - Total drugs in database.
   - Average savings percentage.
-  - Most common substitutions.
+  - Number of alternatives mapped.
 - [ ] Final API smoke tests across all endpoints.
+- [ ] Ensure all endpoints handle concurrent requests properly.
 
-**FE: Responsive + Mobile + Integration**
-- [ ] Mobile-responsive pass on all pages:
-  - Upload page works on mobile (camera capture).
-  - Results page: stack cards vertically, collapsible sections.
+**FE: Responsive + Mobile**
+- [ ] Mobile-responsive pass on search results page:
+  - Stack cards vertically.
+  - Collapsible sections (alternatives, prices, safety info).
   - Price comparison: horizontal scroll table on mobile.
-  - Chat: full-screen on mobile.
-- [ ] Connect any remaining hardcoded data to live APIs.
-- [ ] Add page transitions and micro-interactions.
-- [ ] Favicon and meta tags for social sharing.
+  - AI chat: full-screen on mobile.
+- [ ] Mobile-responsive history page:
+  - Compact search history list.
+  - Swipeable saved medicines cards.
+  - Savings summary at the top.
+- [ ] Mobile-responsive landing page:
+  - Search bar prominent and thumb-accessible.
+  - Prescription upload works on mobile (camera capture).
+- [ ] Header responsive behavior (already has mobile menu).
+- [ ] Page transitions and micro-interactions.
 
 ---
 
-### SYNC POINT (11:30) - 15 min
+### SYNC POINT (10:30) - 15 min
 
 - Full end-to-end walkthrough of all flows.
 - Bug triage: critical vs nice-to-have.
@@ -317,77 +312,130 @@ Both developers work in parallel. Sync points are marked with a handshake icon. 
 
 ---
 
-### Hour 12 (11:30 - 12:00) - Final Testing + Deploy
+### Hour 11 (10:30 - 11:30) - Integration Testing + Fixes
 
-**Both: Joint Testing + Deployment**
-- [ ] Test complete flow 3 times with different prescriptions:
-  1. Simple prescription (2-3 common medicines with generics available).
-  2. Complex prescription (5+ medicines with interactions).
-  3. Edge case (NTI drug, unavailable generic, unparseable item).
+**Both: Joint Testing + Bug Fixes**
+- [ ] Test search flow with different query types:
+  1. Direct medicine name (e.g., "Dolo 650").
+  2. Salt name (e.g., "Paracetamol").
+  3. Natural language question (e.g., "What is the cheapest alternative to Augmentin?").
+  4. Prescription image upload.
+- [ ] Test edge cases:
+  - NTI drug search (should show non-substitutable warning).
+  - Drug with no alternatives.
+  - Drug not in database.
+  - Multiple medicines with interactions (via prescription upload).
 - [ ] Fix critical bugs found during testing.
+- [ ] Verify auth flow: sign in, save search, view history, sign out.
+
+---
+
+### Hour 12 (11:30 - 12:00) - Final Polish + Deploy
+
+**Both: Final Testing + Deployment**
 - [ ] Run `bun x ultracite fix` to ensure code quality.
 - [ ] Run `bun run build` to verify production build succeeds.
 - [ ] Deploy to Vercel:
-  - Set environment variables (DATABASE_URL, GROQ_API_KEY, CEREBRAS_API_KEY, FIRECRAWL_API_KEY).
+  - Set environment variables (DATABASE_URL, GROQ_API_KEY, CEREBRAS_API_KEY, FIRECRAWL_API_KEY, NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY).
   - Verify deployment works.
 - [ ] Quick smoke test on production URL.
+- [ ] Favicon and meta tags for social sharing.
 
 ---
 
 ## API Contract Reference (Agreed at Start)
 
 ```typescript
-// Prescription Upload
-POST /api/prescriptions/upload
-  Body: FormData { file: File }
-  Response: { id: string, status: "uploaded", imageUrl: string }
-
-// Prescription Parse
-POST /api/prescriptions/parse
-  Body: { prescriptionId: string }
+// Unified Search
+GET /api/search?q=string&type=medicine|question
   Response: {
-    id: string,
-    status: "parsed",
-    items: Array<{
-      id: string,
-      rawName: string,
-      parsedSalt: { id: string, name: string } | null,
-      parsedDrug: { id: string, brandName: string } | null,
-      strength: string,
-      dosageForm: string,
-      quantity: number,
-      confidence: number
-    }>
-  }
-
-// Optimize Prescription
-POST /api/prescriptions/[id]/optimize
-  Response: {
-    originalCost: number,
-    optimizedCost: number,
-    savingsAmount: number,
-    savingsPercent: number,
-    items: Array<{
-      original: Drug,
+    type: "medicine" | "ai_response",
+    // If type === "medicine":
+    results: Array<{
+      drug: Drug,
       alternatives: Array<{
         drug: Drug,
         pricePerUnit: number,
         totalPrice: number,
         savings: number,
+        savingsPercent: number,
         safetyTier: "exact_generic" | "therapeutic_equivalent",
-        explanation: string
       }>,
-      interactions: Array<{ withDrug: string, severity: string, description: string }>,
-      isSubstitutable: boolean
-    }>
+      prices: Array<{
+        pharmacy: string,
+        price: number,
+        packSize: number,
+        perUnit: number,
+        inStock: boolean,
+        confidence: "live" | "recent" | "cached" | "estimated",
+        fetchedAt: string,
+      }>,
+      isSubstitutable: boolean,
+      ntiWarning?: string,
+    }>,
+    // If type === "ai_response":
+    answer: string, // streamed markdown
+    relatedDrugs?: Drug[],
   }
 
-// Drug Search
+// Prescription Upload
+POST /api/search/prescription
+  Body: FormData { file: File }
+  Response: {
+    prescriptionId: string,
+    items: Array<{
+      rawName: string,
+      confidence: number,
+      drug: Drug | null,
+      alternatives: Array<{ drug: Drug, savings: number, safetyTier: string }>,
+    }>,
+    totalOriginalCost: number,
+    totalOptimizedCost: number,
+    totalSavings: number,
+  }
+
+// Drug Search (DB-level)
 GET /api/drugs/search?q=string
   Response: { drugs: Array<{ id, brandName, salt, strength, form, manufacturer }> }
 
+// Drug Alternatives
+GET /api/drugs/[id]/alternatives
+  Response: {
+    original: Drug,
+    alternatives: Array<{
+      drug: Drug,
+      pricePerUnit: number,
+      savings: number,
+      safetyTier: "exact_generic" | "therapeutic_equivalent",
+    }>,
+    isSubstitutable: boolean,
+  }
+
+// Drug Info
+GET /api/drugs/[id]/info
+  Response: {
+    drug: Drug,
+    salt: { name, description, mechanismOfAction },
+    sideEffects: { common: string[], rare: string[] },
+    warnings: { pregnancy: string, pediatric: string, geriatric: string },
+    dosage: { usual: string, max: string },
+    storage: string,
+  }
+
+// Drug Interactions
+POST /api/drugs/interactions
+  Body: { saltIds: string[] }
+  Response: {
+    interactions: Array<{
+      saltA: string,
+      saltB: string,
+      severity: "mild" | "moderate" | "severe" | "contraindicated",
+      description: string,
+    }>
+  }
+
 // Price Comparison
-POST /api/compare/prices
+POST /api/prices/compare
   Body: { drugIds: string[] }
   Response: {
     comparisons: Array<{
@@ -398,8 +446,51 @@ POST /api/compare/prices
 
 // AI Chat (Streaming)
 POST /api/ai/chat
-  Body: { messages: Message[], prescriptionId?: string }
+  Body: { messages: Message[], drugContext?: { drugId: string, query: string } }
   Response: ReadableStream (Vercel AI SDK format)
+
+// AI Explain
+POST /api/ai/explain
+  Body: { originalDrug: Drug, alternative: Drug, safetyTier: string }
+  Response: { explanation: string }
+
+// Saved Searches (Auth required)
+GET  /api/saved-searches
+POST /api/saved-searches
+  Body: { query: string, drugId?: string }
+
+// Saved Medicines (Auth required)
+GET    /api/saved-medicines
+POST   /api/saved-medicines
+  Body: { drugId: string, notes?: string }
+DELETE /api/saved-medicines/[id]
+
+// Search History (Auth required)
+GET /api/history?page=number&limit=number
+  Response: {
+    searches: Array<{
+      id: string,
+      query: string,
+      resultDrug: Drug | null,
+      savingsFound: number | null,
+      createdAt: string,
+    }>,
+    total: number,
+    page: number,
+  }
+
+GET /api/history/savings
+  Response: {
+    totalSearches: number,
+    totalSavingsFound: number,
+    averageSavingsPercent: number,
+    topSavings: Array<{ query: string, savings: number, date: string }>,
+  }
+
+// Medicine Profile (Auth required)
+GET  /api/medicine-profile
+POST /api/medicine-profile
+  Body: { saltIds: string[] }
 ```
 
 ---
@@ -408,17 +499,17 @@ POST /api/ai/chat
 
 | Feature | Status Target |
 |---|---|
-| Prescription upload + AI parsing | Functional |
-| Salt-level drug normalization | Functional |
-| Generic alternative mapping | Functional |
-| Drug interaction detection | Functional (seeded data) |
+| Unified search (medicine + NL queries) | Functional |
+| Search results page with medicine info | Functional |
+| Generic alternative mapping + display | Functional |
 | Price comparison (multi-pharmacy) | Functional (2-3 sources) |
-| Cost optimization engine | Functional |
-| AI explanations + chat | Functional |
-| Doctor non-substitutable controls | Functional |
-| Substitution audit logging | Functional |
-| Adherence schedule | Basic |
-| Drug info cards | Basic |
+| Drug interaction detection | Functional (seeded data) |
+| AI explanations + inline chat | Functional |
+| Prescription upload + OCR parsing | Functional |
+| Safety information display | Functional |
+| Authentication + saved searches | Functional |
+| History page + savings tracker | Functional |
+| Medicine profile (interaction checking) | Basic |
 | Mobile responsive | Partial |
 | Production deployment | Deployed |
 
@@ -428,12 +519,12 @@ POST /api/ai/chat
 
 | Risk | Mitigation |
 |---|---|
-| Groq API rate limits | Cache parsed prescriptions; batch requests; fallback to Cerebras |
+| Groq API rate limits | Cache LLM responses for common queries; batch requests; fallback to Cerebras |
 | Firecrawl scraping blocked | Pre-seed price data for top 50 drugs; show "estimated" prices |
-| Prescription parsing accuracy | Manual entry fallback; confidence scores; "edit parsed result" UI |
-| Drug database incomplete | Start with top 100 Indian medicines; flag unknown drugs for manual addition |
+| Prescription parsing accuracy | Confidence scores per item; "edit parsed result" option; retry with better image |
+| Drug database incomplete | Start with top 100 Indian medicines; flag unknown drugs; LLM can fill gaps conversationally |
 | Supabase cold starts | Use connection pooling; keep-alive pings |
-| 12 hours is tight | Prioritize core flow (upload -> parse -> optimize -> compare); cut adherence/chat if behind |
+| 12 hours is tight | Prioritize core flow (search -> results with alternatives + prices); cut auth features if behind |
 
 ---
 
@@ -441,10 +532,10 @@ POST /api/ai/chat
 
 Drop these first (in order) if time runs short:
 
-1. Adherence schedule and reminders (Hour 9 FE).
-2. AI chat interface (Hour 7 FE) - keep explanations, cut chat.
-3. Detailed drug info cards (Hour 9 FE).
-4. Split-pharmacy fulfillment suggestion (Hour 6 FE).
-5. Prescription history page (Hour 8 FE).
+1. Medicine profile / automatic interaction checking (Hour 7 FE).
+2. Cumulative savings tracker on history page (Hour 7 FE) - keep history list, cut stats.
+3. AI chat interface (Hour 4 FE) - keep explanations, cut conversational chat.
+4. Prescription upload (Hour 5) - keep search-only flow.
+5. Price refresh/live scraping (Hour 5 BE) - use seeded price data only.
 
-**Never cut**: Prescription parsing, alternative mapping, price comparison, interaction checks, audit logging.
+**Never cut**: Search results page, alternative mapping, price display, safety information, AI explanations, basic history page.
