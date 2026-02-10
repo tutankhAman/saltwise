@@ -173,14 +173,14 @@ export function QuickSearch() {
         >
           {/* Animated gradient border accent on focus */}
           <div
-            className={`pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-primary to-transparent transition-opacity duration-500 ${isFocused ? "opacity-100" : "opacity-0"}
+            className={`pointer-events-none absolute inset-x-0 top-0 h-0.5 bg-linear-to-r from-transparent via-primary to-transparent transition-opacity duration-500 ${isFocused ? "opacity-100" : "opacity-0"}
             `}
           />
 
           <div className="relative flex items-center gap-2 py-3.5 pr-14 pl-5">
             {/* Search Icon */}
             <div
-              className={`flex-shrink-0 transition-all duration-300 ${isFocused ? "scale-110 text-primary" : "text-muted-foreground"}
+              className={`shrink-0 transition-all duration-300 ${isFocused ? "scale-110 text-primary" : "text-muted-foreground"}
               `}
             >
               <SearchIcon className="size-[1.15rem]" strokeWidth={2.5} />
@@ -211,7 +211,7 @@ export function QuickSearch() {
                       {placeholderText}
                     </span>
                     <span
-                      className={`ml-px inline-block h-[1.1em] w-[2px] translate-y-[1px] rounded-full bg-primary/60 ${isFocused ? "animate-pulse" : "animate-pulse"}
+                      className={`ml-px inline-block h-[1.1em] w-0.5 translate-y-px rounded-full bg-primary/60 ${isFocused ? "animate-pulse" : "animate-pulse"}
                       `}
                     />
                   </span>
@@ -221,7 +221,7 @@ export function QuickSearch() {
 
             {/* Kbd shortcut hint */}
             <div
-              className={`hidden flex-shrink-0 items-center gap-1 transition-opacity duration-200 sm:flex ${isFocused ? "opacity-0" : "opacity-100"}`}
+              className={`hidden shrink-0 items-center gap-1 transition-opacity duration-200 sm:flex ${isFocused ? "opacity-0" : "opacity-100"}`}
             >
               <Kbd className="border border-border/60 bg-muted/60 px-1.5 font-body text-[0.6rem] text-muted-foreground">
                 ⌘K
@@ -266,7 +266,7 @@ export function QuickSearch() {
                       type="button"
                     >
                       <PillIcon
-                        className={`size-3.5 flex-shrink-0 ${selectedIndex === index ? "text-primary" : "text-muted-foreground/50"}
+                        className={`size-3.5 shrink-0 ${selectedIndex === index ? "text-primary" : "text-muted-foreground/50"}
                         `}
                       />
                       <div className="min-w-0 flex-1">
@@ -277,7 +277,7 @@ export function QuickSearch() {
                           {drug.salt}
                         </span>
                       </div>
-                      <span className="flex-shrink-0 rounded-md bg-muted/60 px-1.5 py-0.5 text-[0.6rem] text-muted-foreground">
+                      <span className="shrink-0 rounded-md bg-muted/60 px-1.5 py-0.5 text-[0.6rem] text-muted-foreground">
                         {drug.form}
                       </span>
                     </button>

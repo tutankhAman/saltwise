@@ -10,7 +10,7 @@ export default function Home() {
     <div className="flex flex-col">
       <MeshBackground />
       {/* Hero Section */}
-      <section className="relative flex min-h-[85vh] flex-col items-center justify-center overflow-hidden px-4 pt-16 pb-24 text-center sm:px-6 lg:px-8">
+      <section className="relative flex min-h-[85vh] flex-col items-center justify-center overflow-hidden px-4 pt-40 pb-24 text-center sm:px-6 md:pt-56 lg:px-8">
         {/* Background Floating Assets */}
         <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
           {/* Pill Circle - Top Left */}
@@ -46,7 +46,7 @@ export default function Home() {
 
         {/* Foreground Floating Assets - Bottle */}
         <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center overflow-hidden">
-          <div className="fade-in zoom-in-50 h-[180px] w-[180px] -translate-y-40 animate-in opacity-70 transition-all duration-1000 ease-out sm:h-[320px] sm:w-[320px] dark:opacity-50">
+          <div className="fade-in zoom-in-50 h-[160px] w-[160px] -translate-y-36 animate-in opacity-70 transition-all duration-1000 ease-out sm:h-[320px] sm:w-[320px] lg:-translate-y-20 dark:opacity-50">
             <Image
               alt="Medicine Bottle"
               className="object-contain"
@@ -58,12 +58,12 @@ export default function Home() {
         </div>
 
         <div className="fade-in zoom-in-95 slide-in-from-bottom-4 relative z-10 max-w-4xl animate-in space-y-8 fill-mode-forwards duration-1000 ease-out">
-          <h1 className="relative font-medium font-title text-4xl text-foreground tracking-tight sm:text-5xl md:text-[8rem]">
+          <h1 className="relative font-medium font-title text-5xl text-foreground tracking-tight sm:text-5xl md:text-[8rem]">
             Lowest prices <br />
             on prescription drugs <br />
             <span className="text-primary italic">Save on every pill.</span>
           </h1>
-          <p className="mx-auto max-w-2xl text-lg text-muted-foreground sm:text-xl">
+          <p className="mx-auto max-w-xs text-muted-foreground text-sm sm:text-xl lg:max-w-2xl">
             Find safe, government-approved generic alternatives for your branded
             medicines. Search by name or upload a prescription.
           </p>
