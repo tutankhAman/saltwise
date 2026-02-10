@@ -1,61 +1,92 @@
-"use client";
-
-import { AuthIsland } from "@saltwise/ui/auth/auth-island";
-import type { User } from "@supabase/supabase-js";
-import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { Button } from "@saltwise/ui/components/button";
+import { UploadIcon } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { MeshBackground } from "@/components/mesh-background";
+import { QuickSearch } from "@/components/quick-search";
 
 export default function Home() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const supabase = createClient();
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user: currentUser } }) => {
-      setUser(currentUser);
-      setLoading(false);
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
-  }, [supabase]);
-
-  const handleSignIn = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-  };
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-  };
-
   return (
-    <main className="flex min-h-screen items-center justify-center">
-      <AuthIsland
-        loading={loading}
-        onSignIn={handleSignIn}
-        onSignOut={handleSignOut}
-        open
-        user={
-          user
-            ? {
-                name: user.user_metadata?.full_name ?? user.email ?? "Unknown",
-                email: user.email ?? "",
-                avatarUrl: user.user_metadata?.avatar_url,
-              }
-            : null
-        }
-      />
-    </main>
+    <div className="flex flex-col">
+      <MeshBackground />
+      {/* Hero Section */}
+      <section className="relative flex min-h-[85vh] flex-col items-center justify-center overflow-hidden px-4 pt-16 pb-24 text-center sm:px-6 lg:px-8">
+        {/* Background Floating Assets */}
+        <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+          {/* Pill Circle - Top Left */}
+          <div className="fade-in slide-in-from-left-10 absolute top-[30%] left-[15%] h-16 w-16 animate-in opacity-60 delay-300 duration-1000 sm:h-24 sm:w-24">
+            <Image
+              alt="Pill Circle"
+              className="rotate-12 object-contain"
+              fill
+              src="/landing-assets/pill-circle.webp"
+            />
+          </div>
+
+          {/* Pill Squircle - Bottom Right */}
+          <div className="fade-in slide-in-from-right-10 absolute right-[15%] bottom-[35%] h-20 w-20 animate-in opacity-40 delay-500 duration-1000 sm:h-28 sm:w-28">
+            <Image
+              alt="Pill Squircle"
+              className="-rotate-12 object-contain"
+              fill
+              src="/landing-assets/pill-squircle.webp"
+            />
+          </div>
+
+          {/* Pill Triangle - Top Rightish */}
+          <div className="fade-in zoom-in-50 absolute top-[22%] right-[22%] h-14 w-14 animate-in opacity-35 delay-700 duration-1000 sm:h-20 sm:w-20">
+            <Image
+              alt="Pill Triangle"
+              className="rotate-45 object-contain"
+              fill
+              src="/landing-assets/pill-triangle.webp"
+            />
+          </div>
+        </div>
+
+        {/* Foreground Floating Assets - Bottle */}
+        <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center overflow-hidden">
+          <div className="fade-in zoom-in-50 h-[180px] w-[180px] -translate-y-40 animate-in opacity-70 transition-all duration-1000 ease-out sm:h-[320px] sm:w-[320px] dark:opacity-50">
+            <Image
+              alt="Medicine Bottle"
+              className="object-contain"
+              fill
+              priority
+              src="/landing-assets/bottle.webp"
+            />
+          </div>
+        </div>
+
+        <div className="fade-in zoom-in-95 slide-in-from-bottom-4 relative z-10 max-w-4xl animate-in space-y-8 fill-mode-forwards duration-1000 ease-out">
+          <h1 className="relative font-medium font-title text-4xl text-foreground tracking-tight sm:text-5xl md:text-[8rem]">
+            Lowest prices <br />
+            on prescription drugs <br />
+            <span className="text-primary italic">Save on every pill.</span>
+          </h1>
+          <p className="mx-auto max-w-2xl text-lg text-muted-foreground sm:text-xl">
+            Find safe, government-approved generic alternatives for your branded
+            medicines. Search by name or upload a prescription.
+          </p>
+
+          {/* Search Area - given more prominence */}
+          <div className="mx-auto flex w-full max-w-xl flex-col items-center gap-3 pt-2">
+            <QuickSearch />
+          </div>
+
+          <div className="flex items-center justify-center gap-3 pt-1">
+            <span className="text-muted-foreground/50 text-sm">or</span>
+            <Link href="/upload">
+              <Button
+                className="gap-2 rounded-full border-border/40 bg-white/50 backdrop-blur-sm transition-all duration-200 hover:bg-white/70 hover:shadow-md dark:bg-white/5 dark:hover:bg-white/10"
+                variant="outline"
+              >
+                <UploadIcon className="size-3.5" />
+                Upload Prescription
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+    </div>
   );
 }

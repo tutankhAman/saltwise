@@ -127,6 +127,35 @@
   }
 }
 
+/* Quick Search enhancements */
+.quick-search-container {
+  background-image:
+    radial-gradient(
+      circle at 20% 50%,
+      oklch(0.45 0.15 165 / 3%) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at 80% 50%,
+      oklch(0.55 0.12 220 / 3%) 0%,
+      transparent 50%
+    );
+}
+
+.dark .quick-search-container {
+  background-image:
+    radial-gradient(
+      circle at 20% 50%,
+      oklch(0.6 0.15 165 / 5%) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at 80% 50%,
+      oklch(0.55 0.12 220 / 5%) 0%,
+      transparent 50%
+    );
+}
+
 /* Utility class for title font */
 .font-title {
   font-family: var(--font-title), serif;
