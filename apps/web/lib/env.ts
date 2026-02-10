@@ -4,10 +4,10 @@ import { z } from "zod";
 export const env = createEnv({
   server: {
     GROQ_API_KEY: z.string().min(1, "GROQ_API_KEY is required"),
-    DATABASE_URL: z.string().url("DATABASE_URL must be a valid URL"),
+    DATABASE_URL: z.url("DATABASE_URL must be a valid URL"),
   },
   client: {
-    NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
+    NEXT_PUBLIC_SUPABASE_URL: z.url(),
     NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
   },
   experimental__runtimeEnv: {

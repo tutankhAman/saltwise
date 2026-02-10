@@ -53,8 +53,6 @@ import type {
   ShoppingOption,
 } from "@/lib/types";
 
-/* ─── Utility ───────────────────────────────────────────────────────── */
-
 function PharmacyLogo({ pharmacy }: { pharmacy: ShoppingOption["pharmacy"] }) {
   switch (pharmacy) {
     case "1mg":
@@ -191,8 +189,6 @@ function safetyExplanation(
   return `${alternative.drug.brandName} contains a therapeutically equivalent formulation to ${originalDrug.brandName}. While not an exact generic, it belongs to the same drug class and works through the same mechanism. Your doctor can confirm if this substitution is appropriate for your condition.`;
 }
 
-/* ─── Sub-Components ────────────────────────────────────────────────── */
-
 function SectionHeader({
   icon: Icon,
   title,
@@ -243,9 +239,9 @@ function AlternativeCard({
       className="fade-in slide-in-from-bottom-2 animate-in fill-mode-forwards duration-500 ease-out"
       style={{ animationDelay: `${300 + index * 100}ms` }}
     >
-      <div className="group relative overflow-hidden rounded-xl border border-border/40 bg-white/60 p-4 backdrop-blur-xl transition-all duration-300 hover:border-primary/30 hover:shadow-md hover:shadow-primary/5 dark:bg-white/[0.04] dark:hover:bg-white/[0.06]">
+      <div className="group relative overflow-hidden rounded-xl border border-border/40 bg-white/60 p-4 backdrop-blur-xl transition-all duration-300 hover:border-primary/30 hover:shadow-md hover:shadow-primary/5 dark:bg-white/4 dark:hover:bg-white/6">
         {/* Top accent */}
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/15 to-transparent" />
+        <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-primary/15 to-transparent" />
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0 flex-1 space-y-1.5">
@@ -303,9 +299,9 @@ function AlternativeCard({
           <CollapsibleTrigger className="group/trigger flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-muted-foreground text-xs transition-colors hover:bg-muted/30 hover:text-foreground">
             <InfoIcon className="size-3 shrink-0" />
             <span>Why is this safe?</span>
-            <ChevronDownIcon className="ml-auto size-3 shrink-0 transition-transform group-data-[panel-open]/trigger:rotate-180" />
+            <ChevronDownIcon className="ml-auto size-3 shrink-0 transition-transform group-data-panel-open/trigger:rotate-180" />
           </CollapsibleTrigger>
-          <CollapsibleContent className="animate-collapse-in overflow-hidden data-[ending-style]:animate-collapse-out data-[starting-style]:animate-collapse-out">
+          <CollapsibleContent className="animate-collapse-in overflow-hidden data-ending-style:animate-collapse-out data-starting-style:animate-collapse-out">
             <p className="mt-2 rounded-lg border border-border/30 bg-muted/20 p-3 text-muted-foreground text-xs leading-relaxed backdrop-blur-sm">
               {safetyExplanation(alternative, originalDrug)}
             </p>
@@ -354,7 +350,7 @@ function PriceComparisonTable({ prices }: { prices: PharmacyPrice[] }) {
   const lowestPerUnit = sorted[0]?.perUnit;
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border/40 bg-white/60 backdrop-blur-xl dark:bg-white/[0.04]">
+    <div className="overflow-hidden rounded-xl border border-border/40 bg-white/60 backdrop-blur-xl dark:bg-white/4">
       <Table>
         <TableHeader>
           <TableRow className="border-border/30 hover:bg-transparent">
@@ -379,7 +375,7 @@ function PriceComparisonTable({ prices }: { prices: PharmacyPrice[] }) {
         <TableBody>
           {sorted.map((price, i) => (
             <TableRow
-              className="border-border/20 transition-colors hover:bg-primary/[0.02]"
+              className="border-border/20 transition-colors hover:bg-primary/2"
               key={price.pharmacy}
               style={{ animationDelay: `${600 + i * 80}ms` }}
             >
@@ -457,8 +453,8 @@ function CostComparisonBar({
       className="fade-in slide-in-from-bottom-2 animate-in fill-mode-forwards duration-700"
       style={{ animationDelay: "500ms" }}
     >
-      <div className="overflow-hidden rounded-xl border border-border/40 bg-white/60 p-5 backdrop-blur-xl dark:bg-white/[0.04]">
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent" />
+      <div className="overflow-hidden rounded-xl border border-border/40 bg-white/60 p-5 backdrop-blur-xl dark:bg-white/4">
+        <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-emerald-500/20 to-transparent" />
 
         <div className="space-y-4">
           {/* Original cost bar */}
@@ -495,7 +491,7 @@ function CostComparisonBar({
             </div>
             <div className="h-3 w-full overflow-hidden rounded-full bg-muted/40">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all delay-300 duration-1000 ease-out"
+                className="h-full rounded-full bg-linear-to-r from-emerald-500 to-emerald-400 transition-all delay-300 duration-1000 ease-out"
                 style={{ width: `${Math.max(optimizedBarPercent, 4)}%` }}
               />
             </div>
@@ -538,8 +534,8 @@ function GlassCard({
       className={`fade-in slide-in-from-bottom-2 animate-in fill-mode-forwards duration-500 ease-out ${className}`}
       style={{ animationDelay: `${delay}ms` }}
     >
-      <div className="relative overflow-hidden rounded-xl border border-border/40 bg-white/60 p-4 backdrop-blur-xl dark:bg-white/[0.04]">
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/15 to-transparent" />
+      <div className="relative overflow-hidden rounded-xl border border-border/40 bg-white/60 p-4 backdrop-blur-xl dark:bg-white/4">
+        <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-primary/15 to-transparent" />
         {children}
       </div>
     </div>
@@ -740,10 +736,10 @@ function InteractionsCard({
                   <Badge className={`border-0 text-[0.5rem] ${colors.badge}`}>
                     {interaction.severity}
                   </Badge>
-                  <ChevronDownIcon className="size-3 shrink-0 text-muted-foreground/50 transition-transform group-data-[panel-open]/trigger:rotate-180" />
+                  <ChevronDownIcon className="size-3 shrink-0 text-muted-foreground/50 transition-transform group-data-panel-open/trigger:rotate-180" />
                 </div>
               </CollapsibleTrigger>
-              <CollapsibleContent className="animate-collapse-in overflow-hidden data-[ending-style]:animate-collapse-out data-[starting-style]:animate-collapse-out">
+              <CollapsibleContent className="animate-collapse-in overflow-hidden data-ending-style:animate-collapse-out data-starting-style:animate-collapse-out">
                 <p
                   className={`mt-1.5 rounded-lg p-2.5 text-[0.65rem] leading-relaxed ${colors.bg} ${colors.text}`}
                 >
@@ -795,8 +791,6 @@ function AIExplanationCard({
   );
 }
 
-/* ─── Loading & Error States ────────────────────────────────────────── */
-
 function LoadingState() {
   return (
     <div className="relative min-h-screen">
@@ -825,7 +819,7 @@ function NotFoundState() {
       <div className="relative z-10 mx-auto max-w-7xl px-4 pt-28 pb-16 sm:px-6 md:pt-32 lg:px-8">
         <div className="py-20 text-center">
           <div className="relative mx-auto mb-6 flex size-20 items-center justify-center">
-            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary/10 to-accent/10" />
+            <div className="absolute inset-0 rounded-full bg-linear-to-br from-primary/10 to-accent/10" />
             <div className="absolute inset-1 rounded-full bg-white/80 backdrop-blur-sm dark:bg-white/5" />
             <PillIcon
               className="relative size-8 text-muted-foreground/40"
@@ -853,8 +847,6 @@ function NotFoundState() {
   );
 }
 
-/* ─── Main Page ─────────────────────────────────────────────────────── */
-
 export default function MedicineDetailsPage() {
   const { id } = useParams();
   const [result, setResult] = useState<DrugSearchResult | null>(null);
@@ -862,11 +854,26 @@ export default function MedicineDetailsPage() {
 
   useEffect(() => {
     if (id) {
-      setTimeout(() => {
-        const drug = getDrugById(id as string);
-        setResult(drug);
-        setLoading(false);
-      }, 500);
+      // Fetch from API
+      fetch(`/api/drugs/${id}`)
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error("Failed to fetch");
+          }
+          return res.json();
+        })
+        .then((data) => {
+          setResult(data);
+          setLoading(false);
+        })
+        .catch(() => {
+          // Fallback to mock if API fails (or for demo continuity)
+          const drug = getDrugById(id as string);
+          if (drug) {
+            setResult(drug);
+          }
+          setLoading(false);
+        });
     }
   }, [id]);
 
@@ -907,21 +914,20 @@ export default function MedicineDetailsPage() {
 
         {/* 2-Column Layout */}
         <div className="grid gap-8 lg:grid-cols-[1fr_340px]">
-          {/* ─── Left Column (Main Content) ─── */}
           <div className="min-w-0">
             {/* Medicine Identity Hero */}
             <div
               className="fade-in slide-in-from-bottom-4 animate-in fill-mode-forwards duration-700 ease-out"
               style={{ animationDelay: "100ms" }}
             >
-              <div className="relative overflow-hidden rounded-2xl border border-border/40 bg-white/60 p-6 shadow-sm backdrop-blur-xl sm:p-8 dark:bg-white/[0.04]">
+              <div className="relative overflow-hidden rounded-2xl border border-border/40 bg-white/60 p-6 shadow-sm backdrop-blur-xl sm:p-8 dark:bg-white/4">
                 {/* Top accent */}
-                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/25 to-transparent" />
+                <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-primary/25 to-transparent" />
 
                 {/* Decorative background */}
                 <div className="pointer-events-none absolute inset-0 overflow-hidden">
-                  <div className="absolute -top-20 -right-20 size-60 rounded-full bg-primary/[0.03]" />
-                  <div className="absolute -bottom-10 -left-10 size-40 rounded-full bg-accent/[0.04]" />
+                  <div className="absolute -top-20 -right-20 size-60 rounded-full bg-primary/3" />
+                  <div className="absolute -bottom-10 -left-10 size-40 rounded-full bg-accent/4" />
                 </div>
 
                 <div className="relative flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
@@ -977,7 +983,7 @@ export default function MedicineDetailsPage() {
 
                   {/* Price callout */}
                   {originalPerUnit != null && (
-                    <div className="shrink-0 rounded-xl bg-gradient-to-br from-primary/5 to-accent/5 p-4 text-right sm:min-w-[140px]">
+                    <div className="shrink-0 rounded-xl bg-linear-to-br from-primary/5 to-accent/5 p-4 text-right sm:min-w-35">
                       <p className="font-title text-3xl tabular-nums">
                         <span className="text-foreground/40 text-lg">₹</span>
                         {drug.price?.toFixed(2)}
@@ -1032,7 +1038,7 @@ export default function MedicineDetailsPage() {
                     className="fade-in animate-in fill-mode-forwards duration-500"
                     style={{ animationDelay: "350ms" }}
                   >
-                    <div className="rounded-xl border border-border/40 bg-white/60 p-6 text-center backdrop-blur-xl dark:bg-white/[0.04]">
+                    <div className="rounded-xl border border-border/40 bg-white/60 p-6 text-center backdrop-blur-xl dark:bg-white/4">
                       <p className="text-muted-foreground text-sm">
                         No generic alternatives found. This is already the most
                         cost-effective option we know of.

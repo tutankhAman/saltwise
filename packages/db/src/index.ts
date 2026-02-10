@@ -1,17 +1,33 @@
-import { SQL } from "bun";
-import { drizzle } from "drizzle-orm/bun-sql";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 import { env } from "./env";
-import { conversations, messages } from "./schema";
+import {
+  conversations,
+  drugPrices,
+  drugs,
+  messages,
+  salts,
+  scrapeJobs,
+  searchHistory,
+} from "./schema";
 
-const schema = { conversations, messages };
+const schema = {
+  conversations,
+  messages,
+  salts,
+  drugs,
+  drugPrices,
+  scrapeJobs,
+  searchHistory,
+};
 
 const globalForDb = globalThis as unknown as {
-  client: SQL | undefined;
+  client: postgres.Sql | undefined;
 };
 
 const client =
   globalForDb.client ??
-  new SQL(env.DATABASE_URL, {
+  postgres(env.DATABASE_URL, {
     prepare: false,
   });
 if (process.env.NODE_ENV !== "production") {
