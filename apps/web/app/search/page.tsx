@@ -15,10 +15,12 @@ import {
 import { Skeleton } from "@saltwise/ui/components/skeleton";
 import { PillIcon, SearchIcon, XIcon } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { AggregateSavings } from "@/components/aggregate-savings";
 import { MedicineCard } from "@/components/medicine-card";
+import { PrescriptionUpload } from "@/components/prescription-upload";
 import { useDebounce } from "@/hooks/use-debounce";
-import { searchMockDrugs } from "@/lib/mock-data";
+import { computeAggregateSavings, searchMockDrugs } from "@/lib/mock-data";
 import type { DrugSearchResult } from "@/lib/types";
 
 function LoadingSkeleton() {
@@ -82,6 +84,14 @@ function SearchContent() {
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
 
+  // Prescription upload state
+  const [prescriptionResults, setPrescriptionResults] = useState<
+    DrugSearchResult[]
+  >([]);
+  const [prescriptionFileName, setPrescriptionFileName] = useState<
+    string | null
+  >(null);
+
   useEffect(() => {
     if (debouncedQuery) {
       router.replace(`/search?q=${encodeURIComponent(debouncedQuery)}`);
@@ -116,6 +126,29 @@ function SearchContent() {
     resetResults();
     router.replace("/search");
   };
+
+  const handlePrescriptionResults = useCallback(
+    (newResults: DrugSearchResult[], fileName: string) => {
+      setPrescriptionResults(newResults);
+      setPrescriptionFileName(fileName);
+    },
+    []
+  );
+
+  const dismissPrescription = useCallback(() => {
+    setPrescriptionResults([]);
+    setPrescriptionFileName(null);
+  }, []);
+
+  const aggregateSavings = useMemo(
+    () =>
+      prescriptionResults.length > 0
+        ? computeAggregateSavings(prescriptionResults)
+        : null,
+    [prescriptionResults]
+  );
+
+  const hasPrescriptionResults = prescriptionResults.length > 0;
 
   return (
     <div className="relative min-h-screen">
@@ -167,10 +200,57 @@ function SearchContent() {
               </InputGroup>
             </div>
           </div>
+
+          {/* Prescription upload zone */}
+          <div className="mx-auto mt-4 max-w-xl">
+            <PrescriptionUpload onResults={handlePrescriptionResults} />
+          </div>
         </div>
 
         {/* Results area */}
         <div className="space-y-6">
+          {/* Aggregate savings banner */}
+          {hasPrescriptionResults &&
+            aggregateSavings &&
+            prescriptionFileName && (
+              <AggregateSavings
+                fileName={prescriptionFileName}
+                onDismiss={dismissPrescription}
+                savings={aggregateSavings}
+              />
+            )}
+
+          {/* Prescription results */}
+          {hasPrescriptionResults && (
+            <div className="fade-in animate-in fill-mode-forwards duration-500">
+              <p className="mb-4 text-muted-foreground/70 text-xs">
+                {prescriptionResults.length}{" "}
+                {prescriptionResults.length === 1 ? "medicine" : "medicines"}{" "}
+                found in prescription
+              </p>
+              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {prescriptionResults.map((result, i) => (
+                  <MedicineCard
+                    index={i}
+                    key={result.drug.id}
+                    result={result}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Divider between prescription and search results */}
+          {hasPrescriptionResults && hasSearched && !loading && (
+            <div className="flex items-center gap-3 pt-2">
+              <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border/60 to-transparent" />
+              <span className="text-muted-foreground/40 text-xs">
+                Search Results
+              </span>
+              <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border/60 to-transparent" />
+            </div>
+          )}
+
           {loading && <LoadingSkeleton />}
 
           {/* No results */}
@@ -215,7 +295,7 @@ function SearchContent() {
           )}
 
           {/* Empty state - no search yet */}
-          {!(loading || hasSearched) && (
+          {!(loading || hasSearched || hasPrescriptionResults) && (
             <div className="fade-in slide-in-from-bottom-4 animate-in fill-mode-forwards duration-700">
               <div className="mx-auto max-w-md py-20 text-center">
                 {/* Decorative pill icon */}
