@@ -159,6 +159,12 @@ export function SaltyChat({
 
   const hasSentInitialRef = useRef(false);
 
+  // Auto-scroll to bottom when messages update
+  // biome-ignore lint/correctness/useExhaustiveDependencies: scroll on update
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatMessages]);
+
   const handleSignOut = useCallback(async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
@@ -267,6 +273,7 @@ export function SaltyChat({
 
         {chatMessages.map((msg, idx) => (
           <SaltyResponse
+            avatarUrl={user?.avatarUrl}
             content={msg.content}
             isStreaming={
               isStreaming &&
