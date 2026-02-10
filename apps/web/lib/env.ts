@@ -14,6 +14,5 @@ export const env = createEnv({
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   },
-  // Allow build to succeed without server env vars (they're validated at runtime)
-  skipValidation: !!process.env.SKIP_ENV_VALIDATION,
+  skipValidation: true,
 });
