@@ -1,19 +1,32 @@
 import type { Metadata } from "next";
-import localFont from "next/font/local";
+import { Instrument_Sans, Instrument_Serif, Outfit } from "next/font/google";
+import { SiteHeader } from "@/components/site-header";
 import "./globals.css";
 
-const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
-  variable: "--font-geist-sans",
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-title",
+  display: "swap",
 });
-const geistMono = localFont({
-  src: "./fonts/GeistMonoVF.woff",
-  variable: "--font-geist-mono",
+
+const instrumentSans = Instrument_Sans({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-heading",
+  display: "swap",
+});
+
+const outfit = Outfit({
+  subsets: ["latin"],
+  variable: "--font-body",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
   title: "Saltwise",
-  description: "Medicine's goes brr",
+  description:
+    "Reduce your medicine costs by finding safe, lower-cost generic alternatives at the salt level.",
 };
 
 export default function RootLayout({
@@ -24,9 +37,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${instrumentSerif.variable} ${instrumentSans.variable} ${outfit.variable} font-body antialiased`}
       >
-        {children}
+        <SiteHeader />
+        <main>{children}</main>
       </body>
     </html>
   );
