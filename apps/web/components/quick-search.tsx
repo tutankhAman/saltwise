@@ -3,6 +3,7 @@
 import { Kbd } from "@saltwise/ui/components/kbd";
 import {
   ArrowRightIcon,
+  BotIcon,
   PillIcon,
   SearchIcon,
   SparklesIcon,
@@ -10,6 +11,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MOCK_DRUGS } from "@/lib/mock-data";
+import { SaltyChat } from "./salty-chat";
 
 const PLACEHOLDER_MEDICINES = [
   "Dolo 650",
@@ -28,6 +30,30 @@ const POPULAR_SEARCHES = [
   { label: "Shelcal", salt: "Calcium + D3" },
 ];
 
+function ModeToggle({
+  mode,
+  onToggle,
+}: {
+  mode: "search" | "salty";
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      aria-label={mode === "search" ? "Switch to AI chat" : "Switch to search"}
+      className="flex size-8 shrink-0 items-center justify-center rounded-full transition-all duration-200 hover:bg-primary/10"
+      onClick={onToggle}
+      title={mode === "search" ? "Chat with Salty" : "Back to search"}
+      type="button"
+    >
+      {mode === "search" ? (
+        <BotIcon className="size-4 text-primary/70" strokeWidth={2} />
+      ) : (
+        <SearchIcon className="size-4 text-primary/70" strokeWidth={2} />
+      )}
+    </button>
+  );
+}
+
 export function QuickSearch() {
   const [query, setQuery] = useState("");
   const [isFocused, setIsFocused] = useState(false);
@@ -35,13 +61,14 @@ export function QuickSearch() {
   const [placeholderText, setPlaceholderText] = useState("");
   const [isTyping, setIsTyping] = useState(true);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [mode, setMode] = useState<"search" | "salty">("search");
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
   // Animated placeholder typing effect
   useEffect(() => {
-    if (query.length > 0) {
+    if (query.length > 0 || mode === "salty") {
       return;
     }
 
@@ -81,7 +108,7 @@ export function QuickSearch() {
     }
 
     return () => clearTimeout(timeout);
-  }, [placeholderIndex, isTyping, query.length]);
+  }, [placeholderIndex, isTyping, query.length, mode]);
 
   // Keyboard shortcut: Cmd/Ctrl + K
   useEffect(() => {
@@ -118,7 +145,8 @@ export function QuickSearch() {
         ).slice(0, 5)
       : [];
 
-  const showSuggestions = isFocused && filteredSuggestions.length > 0;
+  const showSuggestions =
+    mode === "search" && isFocused && filteredSuggestions.length > 0;
 
   const navigateToSearch = useCallback(
     (searchQuery: string) => {
@@ -131,6 +159,9 @@ export function QuickSearch() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (mode === "salty") {
+      return;
+    }
     if (selectedIndex >= 0 && filteredSuggestions[selectedIndex]) {
       navigateToSearch(filteredSuggestions[selectedIndex].brandName);
     } else {
@@ -159,6 +190,12 @@ export function QuickSearch() {
     }
   };
 
+  const toggleMode = useCallback(() => {
+    setMode((prev) => (prev === "search" ? "salty" : "search"));
+    setQuery("");
+    setSelectedIndex(-1);
+  }, []);
+
   return (
     <div className="w-full max-w-xl" ref={containerRef}>
       {/* Search Container */}
@@ -178,46 +215,69 @@ export function QuickSearch() {
           />
 
           <div className="relative flex items-center gap-2 py-3.5 pr-14 pl-5">
-            {/* Search Icon */}
+            {/* Mode toggle */}
+            <ModeToggle mode={mode} onToggle={toggleMode} />
+
+            {/* Search Icon / Salty indicator */}
             <div
               className={`shrink-0 transition-all duration-300 ${isFocused ? "scale-110 text-primary" : "text-muted-foreground"}
               `}
             >
-              <SearchIcon className="size-[1.15rem]" strokeWidth={2.5} />
-            </div>
-
-            {/* Input */}
-            <div className="relative min-w-0 flex-1">
-              <input
-                aria-label="Search for medicines"
-                className="w-full bg-transparent text-[0.95rem] text-foreground outline-none placeholder:text-transparent"
-                onChange={(e) => {
-                  setQuery(e.target.value);
-                  setSelectedIndex(-1);
-                }}
-                onFocus={() => setIsFocused(true)}
-                onKeyDown={handleInputKeyDown}
-                placeholder="Search for a medicine..."
-                ref={inputRef}
-                type="text"
-                value={query}
-              />
-              {/* Custom animated placeholder */}
-              {query.length === 0 && (
-                <div className="pointer-events-none absolute inset-0 flex items-center">
-                  <span className="text-[0.95rem] text-muted-foreground/70">
-                    Search for{" "}
-                    <span className="text-muted-foreground">
-                      {placeholderText}
-                    </span>
-                    <span
-                      className={`ml-px inline-block h-[1.1em] w-0.5 translate-y-px rounded-full bg-primary/60 ${isFocused ? "animate-pulse" : "animate-pulse"}
-                      `}
-                    />
-                  </span>
-                </div>
+              {mode === "search" ? (
+                <SearchIcon className="size-[1.15rem]" strokeWidth={2.5} />
+              ) : (
+                <SparklesIcon className="size-[1.15rem]" strokeWidth={2.5} />
               )}
             </div>
+
+            {/* Mode badge */}
+            <span
+              className={`shrink-0 rounded-full px-2 py-0.5 font-heading text-[0.55rem] uppercase tracking-wider transition-colors ${
+                mode === "salty"
+                  ? "bg-primary/10 text-primary"
+                  : "bg-muted/60 text-muted-foreground"
+              }`}
+            >
+              {mode === "salty" ? "Salty AI" : "Search"}
+            </span>
+
+            {/* Input — only shown in search mode */}
+            {mode === "search" && (
+              <div className="relative min-w-0 flex-1">
+                <input
+                  aria-label="Search for medicines"
+                  className="w-full bg-transparent text-[0.95rem] text-foreground outline-none placeholder:text-transparent"
+                  onChange={(e) => {
+                    setQuery(e.target.value);
+                    setSelectedIndex(-1);
+                  }}
+                  onFocus={() => setIsFocused(true)}
+                  onKeyDown={handleInputKeyDown}
+                  placeholder="Search for a medicine..."
+                  ref={inputRef}
+                  type="text"
+                  value={query}
+                />
+                {/* Custom animated placeholder */}
+                {query.length === 0 && (
+                  <div className="pointer-events-none absolute inset-0 flex items-center">
+                    <span className="text-[0.95rem] text-muted-foreground/70">
+                      Search for{" "}
+                      <span className="text-muted-foreground">
+                        {placeholderText}
+                      </span>
+                      <span
+                        className={`ml-px inline-block h-[1.1em] w-0.5 translate-y-px rounded-full bg-primary/60 ${isFocused ? "animate-pulse" : "animate-pulse"}
+                        `}
+                      />
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Spacer for salty mode */}
+            {mode === "salty" && <div className="min-w-0 flex-1" />}
 
             {/* Kbd shortcut hint */}
             <div
@@ -228,21 +288,23 @@ export function QuickSearch() {
               </Kbd>
             </div>
 
-            {/* Submit arrow */}
-            <button
-              aria-label="Search"
-              className={`absolute top-1.5 right-1.5 bottom-1.5 z-10 flex aspect-square items-center justify-center rounded-full shadow-sm transition-colors ${
-                query.length > 0
-                  ? "bg-primary text-primary-foreground hover:bg-primary/80"
-                  : "bg-muted text-muted-background/50 hover:bg-primary/40"
-              }`}
-              type="submit"
-            >
-              <ArrowRightIcon className="size-5" strokeWidth={2.5} />
-            </button>
+            {/* Submit arrow — only in search mode */}
+            {mode === "search" && (
+              <button
+                aria-label="Search"
+                className={`absolute top-1.5 right-1.5 bottom-1.5 z-10 flex aspect-square items-center justify-center rounded-full shadow-sm transition-colors ${
+                  query.length > 0
+                    ? "bg-primary text-primary-foreground hover:bg-primary/80"
+                    : "bg-muted text-muted-background/50 hover:bg-primary/40"
+                }`}
+                type="submit"
+              >
+                <ArrowRightIcon className="size-5" strokeWidth={2.5} />
+              </button>
+            )}
           </div>
 
-          {/* Inline Suggestions Dropdown */}
+          {/* Inline Suggestions Dropdown — search mode only */}
           {showSuggestions && (
             <div className="border-border/30 border-t">
               <div className="px-3 py-2">
@@ -286,34 +348,43 @@ export function QuickSearch() {
               </div>
             </div>
           )}
+
+          {/* Salty Chat — shown in salty mode */}
+          {mode === "salty" && (
+            <div className="border-border/30 border-t">
+              <SaltyChat onClose={() => setMode("search")} />
+            </div>
+          )}
         </div>
       </form>
 
-      {/* Popular Searches - Quick-Pick Pills */}
-      <div
-        className={`mt-4 flex flex-wrap items-center justify-center gap-2 transition-all duration-500 ${isFocused && filteredSuggestions.length > 0 ? "translate-y-1 opacity-0" : "translate-y-0 opacity-100"}
-        `}
-      >
-        <span className="flex items-center gap-1.5 text-muted-foreground/60 text-xs">
-          <SparklesIcon className="size-3" />
-          Popular
-        </span>
-        {POPULAR_SEARCHES.map((item) => (
-          <button
-            className={
-              "group/pill inline-flex items-center gap-1.5 rounded-full border border-border/40 bg-white/50 px-3 py-1 font-medium text-foreground/70 text-xs shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-primary/30 hover:bg-primary/5 hover:text-foreground hover:shadow-md active:scale-95 dark:bg-white/5"
-            }
-            key={item.label}
-            onClick={() => navigateToSearch(item.label)}
-            type="button"
-          >
-            <span>{item.label}</span>
-            <span className="text-[0.6rem] text-muted-foreground/50 transition-colors group-hover/pill:text-primary/60">
-              {item.salt}
-            </span>
-          </button>
-        ))}
-      </div>
+      {/* Popular Searches - Quick-Pick Pills — only in search mode */}
+      {mode === "search" && (
+        <div
+          className={`mt-4 flex flex-wrap items-center justify-center gap-2 transition-all duration-500 ${isFocused && filteredSuggestions.length > 0 ? "translate-y-1 opacity-0" : "translate-y-0 opacity-100"}
+          `}
+        >
+          <span className="flex items-center gap-1.5 text-muted-foreground/60 text-xs">
+            <SparklesIcon className="size-3" />
+            Popular
+          </span>
+          {POPULAR_SEARCHES.map((item) => (
+            <button
+              className={
+                "group/pill inline-flex items-center gap-1.5 rounded-full border border-border/40 bg-white/50 px-3 py-1 font-medium text-foreground/70 text-xs shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-primary/30 hover:bg-primary/5 hover:text-foreground hover:shadow-md active:scale-95 dark:bg-white/5"
+              }
+              key={item.label}
+              onClick={() => navigateToSearch(item.label)}
+              type="button"
+            >
+              <span>{item.label}</span>
+              <span className="text-[0.6rem] text-muted-foreground/50 transition-colors group-hover/pill:text-primary/60">
+                {item.salt}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
