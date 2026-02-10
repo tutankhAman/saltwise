@@ -8,6 +8,9 @@ export const SALTY_MODEL = "openai/gpt-oss-120b" as const;
 export const OCR_MODEL =
   "meta-llama/llama-4-maverick-17b-128e-instruct" as const;
 
+/** The model ID used for speech-to-text transcription */
+export const STT_MODEL = "whisper-large-v3-turbo" as const;
+
 /** Default parameters for Salty chat completions */
 export const SALTY_DEFAULTS = {
   temperature: 0.7,
