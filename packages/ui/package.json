@@ -1,12 +1,13 @@
 {
-  "name": "@bitwork/ui",
+  "name": "@saltwise/ui",
   "version": "0.0.1",
   "private": true,
   "type": "module",
   "exports": {
     "./components/*": "./src/components/*.tsx",
     "./lib/*": "./src/lib/*.ts",
-    "./hooks/*": "./src/hooks/*.ts"
+    "./hooks/*": "./src/hooks/*.ts",
+    "./auth/*": "./src/auth/*.tsx"
   },
   "dependencies": {
     "@base-ui/react": "^1.1.0",
@@ -17,6 +18,7 @@
     "embla-carousel-react": "^8.6.0",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.563.0",
+    "motion": "^12.34.0",
     "next-themes": "^0.4.6",
     "react-day-picker": "^9.13.1",
     "react-resizable-panels": "^4.6.2",

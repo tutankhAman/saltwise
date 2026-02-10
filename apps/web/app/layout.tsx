@@ -12,8 +12,8 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Bitwork",
-  description: "Skill Exchange and Micro-Collaboration Network",
+  title: "Saltwise",
+  description: "Medicine's goes brr",
 };
 
 export default function RootLayout({

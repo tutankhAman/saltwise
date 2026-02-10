@@ -2,7 +2,7 @@
 
 import * as React from "react"
 
-import { cn } from "@bitwork/ui/lib/utils"
+import { cn } from "@saltwise/ui/lib/utils"
 
 function Label({ className, ...props }: React.ComponentProps<"label">) {
   return (

@@ -1,5 +1,5 @@
 {
-  "extends": "@bitwork/configs/nextjs.json",
+  "extends": "@saltwise/configs/nextjs.json",
   "compilerOptions": {
     "plugins": [
       {
@@ -10,7 +10,7 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],
-      "@bitwork/ui/*": ["../../packages/ui/src/*"]
+      "@saltwise/ui/*": ["../../packages/ui/src/*"]
     }
   },
   "include": [
