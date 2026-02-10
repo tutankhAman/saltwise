@@ -7,5 +7,5 @@ export default defineConfig({
   dbCredentials: {
     url: env.DATABASE_URL,
   },
-  tablesFilter: ["bitwork_*"],
+  tablesFilter: ["saltwise_*"],
 } satisfies Config);

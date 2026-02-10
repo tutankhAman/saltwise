@@ -5,24 +5,24 @@ import { mergeProps } from "@base-ui/react/merge-props"
 import { useRender } from "@base-ui/react/use-render"
 import { cva, type VariantProps } from "class-variance-authority"
 
-import { useIsMobile } from "@bitwork/ui/hooks/use-mobile"
-import { cn } from "@bitwork/ui/lib/utils"
-import { Button } from "@bitwork/ui/components/button"
-import { Input } from "@bitwork/ui/components/input"
-import { Separator } from "@bitwork/ui/components/separator"
+import { useIsMobile } from "@saltwise/ui/hooks/use-mobile"
+import { cn } from "@saltwise/ui/lib/utils"
+import { Button } from "@saltwise/ui/components/button"
+import { Input } from "@saltwise/ui/components/input"
+import { Separator } from "@saltwise/ui/components/separator"
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from "@bitwork/ui/components/sheet"
-import { Skeleton } from "@bitwork/ui/components/skeleton"
+} from "@saltwise/ui/components/sheet"
+import { Skeleton } from "@saltwise/ui/components/skeleton"
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@bitwork/ui/components/tooltip"
+} from "@saltwise/ui/components/tooltip"
 import { PanelLeftIcon } from "lucide-react"
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"

@@ -13,11 +13,11 @@
   "iconLibrary": "lucide",
   "rtl": false,
   "aliases": {
-    "components": "@bitwork/ui/components",
-    "utils": "@bitwork/ui/lib/utils",
-    "ui": "@bitwork/ui/components",
-    "lib": "@bitwork/ui/lib",
-    "hooks": "@bitwork/ui/hooks"
+    "components": "@saltwise/ui/components",
+    "utils": "@saltwise/ui/lib/utils",
+    "ui": "@saltwise/ui/components",
+    "lib": "@saltwise/ui/lib",
+    "hooks": "@saltwise/ui/hooks"
   },
   "menuColor": "default",
   "menuAccent": "bold",

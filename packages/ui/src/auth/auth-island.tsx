@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@bitwork/ui/lib/utils";
+import { cn } from "@saltwise/ui/lib/utils";
 import { AnimatePresence, motion } from "motion/react";
 import { Button } from "../components/button";
 
@@ -27,12 +27,128 @@ function GoogleIcon({ className }: { className?: string }) {
   );
 }
 
+interface AuthUser {
+  name: string;
+  email: string;
+  avatarUrl?: string;
+}
+
 interface AuthIslandProps {
   open?: boolean;
   className?: string;
+  user?: AuthUser | null;
+  onSignIn?: () => void;
+  onSignOut?: () => void;
+  loading?: boolean;
 }
 
-function AuthIsland({ open = false, className }: AuthIslandProps) {
+function UserAvatar({ user }: { user: AuthUser }) {
+  if (user.avatarUrl) {
+    return (
+      // biome-ignore lint/performance/noImgElement: UI package is framework-agnostic
+      // biome-ignore lint/correctness/useImageSize: avatar sized via CSS class
+      <img
+        alt={user.name}
+        className="size-8 rounded-full"
+        referrerPolicy="no-referrer"
+        src={user.avatarUrl}
+      />
+    );
+  }
+
+  return (
+    <div className="flex size-8 items-center justify-center rounded-full bg-black/10 font-medium text-xs dark:bg-white/10">
+      {user.name.charAt(0).toUpperCase()}
+    </div>
+  );
+}
+
+function UserProfile({
+  user,
+  onSignOut,
+}: {
+  user: AuthUser;
+  onSignOut?: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <UserAvatar user={user} />
+      <div className="flex flex-col">
+        <span className="font-medium text-sm leading-tight">
+          Welcome, {user.name.split(" ")[0]}
+        </span>
+        <span className="text-muted-foreground text-xs leading-tight">
+          {user.email}
+        </span>
+      </div>
+      <Button className="ml-2" onClick={onSignOut} size="sm" variant="ghost">
+        Sign out
+      </Button>
+    </div>
+  );
+}
+
+function SignInPrompt({ onSignIn }: { onSignIn?: () => void }) {
+  return (
+    <div className="flex flex-col items-center gap-2.5 px-1 py-1">
+      <div className="flex flex-col items-center gap-0.5">
+        <span className="font-medium text-sm">Sign in to continue</span>
+        <span className="text-muted-foreground text-xs">
+          Save prescriptions and track your medicines
+        </span>
+      </div>
+      <Button
+        className="w-full gap-2"
+        onClick={onSignIn}
+        size="sm"
+        variant="outline"
+      >
+        <GoogleIcon className="size-4" />
+        <span>Continue with Google</span>
+      </Button>
+    </div>
+  );
+}
+
+function LoadingSpinner() {
+  return (
+    <div className="flex items-center gap-2 px-2 py-1">
+      <div className="size-4 animate-spin rounded-full border-2 border-black/20 border-t-black/60 dark:border-white/20 dark:border-t-white/60" />
+      <span className="text-muted-foreground text-sm">Loading...</span>
+    </div>
+  );
+}
+
+function IslandContent({
+  loading,
+  user,
+  onSignIn,
+  onSignOut,
+}: {
+  loading: boolean;
+  user?: AuthUser | null;
+  onSignIn?: () => void;
+  onSignOut?: () => void;
+}) {
+  if (loading) {
+    return <LoadingSpinner />;
+  }
+
+  if (user) {
+    return <UserProfile onSignOut={onSignOut} user={user} />;
+  }
+
+  return <SignInPrompt onSignIn={onSignIn} />;
+}
+
+function AuthIsland({
+  open = false,
+  className,
+  user,
+  onSignIn,
+  onSignOut,
+  loading = false,
+}: AuthIslandProps) {
   return (
     <AnimatePresence>
       {open && (
@@ -51,14 +167,12 @@ function AuthIsland({ open = false, className }: AuthIslandProps) {
           key="auth-island"
           transition={{ type: "spring", stiffness: 400, damping: 30 }}
         >
-          <Button
-            className="pointer-events-none gap-2 pt-2"
-            size="sm"
-            variant="ghost"
-          >
-            <GoogleIcon className="size-4" />
-            <span>Sign in with Google</span>
-          </Button>
+          <IslandContent
+            loading={loading}
+            onSignIn={onSignIn}
+            onSignOut={onSignOut}
+            user={user}
+          />
         </motion.div>
       )}
     </AnimatePresence>
@@ -66,3 +180,4 @@ function AuthIsland({ open = false, className }: AuthIslandProps) {
 }
 
 export { AuthIsland };
+export type { AuthIslandProps, AuthUser };

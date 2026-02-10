@@ -16,8 +16,8 @@
     "components": "@/components",
     "hooks": "@/hooks",
     "lib": "@/lib",
-    "utils": "@bitwork/ui/lib/utils",
-    "ui": "@bitwork/ui/components"
+    "utils": "@saltwise/ui/lib/utils",
+    "ui": "@saltwise/ui/components"
   },
   "menuColor": "default",
   "menuAccent": "bold",
