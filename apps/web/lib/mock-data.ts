@@ -1,9 +1,12 @@
 import type {
+  AggregateSavingsData,
   Drug,
   DrugAlternative,
   DrugInteraction,
   DrugSearchResult,
   PharmacyPrice,
+  PrescriptionMedicine,
+  PrescriptionParseResult,
   SafetyInfo,
 } from "./types";
 
@@ -694,32 +697,33 @@ function buildAlternatives(drug: Drug): DrugAlternative[] {
 
     // Generate consistent mock shopping options
     const basePrice = alt.price ?? 100;
-    const shoppingOptions: ShoppingOption[] = [
+    const allOptions = [
       {
-        pharmacy: "1mg",
+        pharmacy: "1mg" as const,
         price: basePrice,
         url: `https://1mg.com/search/all?name=${encodeURIComponent(alt.brandName)}`,
         inStock: true,
       },
       {
-        pharmacy: "PharmEasy",
+        pharmacy: "PharmEasy" as const,
         price: Math.round(basePrice * 0.95), // 5% discount
         url: `https://pharmeasy.in/search/all?name=${encodeURIComponent(alt.brandName)}`,
         inStock: true,
       },
       {
-        pharmacy: "Apollo",
+        pharmacy: "Apollo" as const,
         price: Math.round(basePrice * 1.05), // 5% premium
         url: `https://www.apollopharmacy.in/search-medicines/${encodeURIComponent(alt.brandName)}`,
         inStock: true,
       },
       {
-        pharmacy: "Netmeds",
+        pharmacy: "Netmeds" as const,
         price: Math.round(basePrice * 0.98), // 2% discount
         url: `https://www.netmeds.com/catalogsearch/result?q=${encodeURIComponent(alt.brandName)}`,
         inStock: Math.random() > 0.3, // Randomly out of stock
       },
-    ].filter((o) => o.inStock); // Only show in-stock options for better UX
+    ];
+    const shoppingOptions = allOptions.filter((o) => o.inStock);
 
     return {
       drug: alt,
@@ -770,4 +774,88 @@ export function getDrugById(id: string): DrugSearchResult | null {
     return null;
   }
   return buildMockSearchResult(drug);
+}
+
+/**
+ * Simulated prescription "parsing" — picks a random subset of mock drugs to
+ * mimic what an OCR / AI pipeline would return from a prescription image.
+ */
+const PRESCRIPTION_PRESETS: PrescriptionMedicine[][] = [
+  [
+    { name: "Dolo 650", dosage: "650mg", quantity: 15 },
+    { name: "Pan 40", dosage: "40mg", quantity: 15 },
+    { name: "Augmentin 625 Duo", dosage: "500mg + 125mg", quantity: 10 },
+  ],
+  [
+    { name: "Shelcal 500", dosage: "500mg + 250IU", quantity: 30 },
+    { name: "Thyronorm", dosage: "100mcg", quantity: 30 },
+    { name: "Becosules", dosage: "N/A", quantity: 20 },
+  ],
+  [
+    { name: "Dolo 650", dosage: "650mg", quantity: 15 },
+    { name: "Telma 40", dosage: "40mg", quantity: 15 },
+    { name: "Glycomet-GP 1", dosage: "500mg + 1mg", quantity: 15 },
+    { name: "Pan 40", dosage: "40mg", quantity: 15 },
+  ],
+];
+
+export async function parseMockPrescription(
+  fileName: string
+): Promise<PrescriptionParseResult> {
+  // Simulate network + OCR processing delay
+  await new Promise((resolve) => setTimeout(resolve, 2000));
+
+  const presetIndex = Math.floor(Math.random() * PRESCRIPTION_PRESETS.length);
+  const medicines: PrescriptionMedicine[] =
+    PRESCRIPTION_PRESETS[presetIndex] ?? [];
+
+  const results: DrugSearchResult[] = [];
+  for (const med of medicines) {
+    const drug = MOCK_DRUGS.find(
+      (d) => d.brandName.toLowerCase() === med.name.toLowerCase()
+    );
+    if (drug) {
+      results.push(buildMockSearchResult(drug));
+    }
+  }
+
+  return { medicines, results, fileName };
+}
+
+/**
+ * Compute aggregate savings across a set of search results.
+ */
+export function computeAggregateSavings(
+  results: DrugSearchResult[]
+): AggregateSavingsData {
+  let totalOriginalCost = 0;
+  let totalCheapestCost = 0;
+  let medicinesWithSavings = 0;
+
+  for (const result of results) {
+    const originalPrice = result.drug.price ?? 0;
+    totalOriginalCost += originalPrice;
+
+    if (result.alternatives.length > 0) {
+      const cheapest = Math.min(
+        ...result.alternatives.map((a) => a.totalPrice)
+      );
+      totalCheapestCost += cheapest;
+      medicinesWithSavings++;
+    } else {
+      totalCheapestCost += originalPrice;
+    }
+  }
+
+  const totalSavings = Math.max(0, totalOriginalCost - totalCheapestCost);
+  const savingsPercent =
+    totalOriginalCost > 0 ? (totalSavings / totalOriginalCost) * 100 : 0;
+
+  return {
+    totalOriginalCost,
+    totalCheapestCost,
+    totalSavings,
+    savingsPercent,
+    medicineCount: medicinesWithSavings,
+  };
 }

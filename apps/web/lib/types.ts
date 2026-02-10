@@ -93,3 +93,23 @@ export interface UnifiedSearchResponse {
   answer?: string;
   relatedDrugs?: Drug[];
 }
+
+export interface PrescriptionMedicine {
+  name: string;
+  dosage?: string;
+  quantity?: number;
+}
+
+export interface PrescriptionParseResult {
+  medicines: PrescriptionMedicine[];
+  results: DrugSearchResult[];
+  fileName: string;
+}
+
+export interface AggregateSavingsData {
+  totalOriginalCost: number;
+  totalCheapestCost: number;
+  totalSavings: number;
+  savingsPercent: number;
+  medicineCount: number;
+}
