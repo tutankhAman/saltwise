@@ -4,7 +4,7 @@
 
 Saltwise is an AI-driven prescription intelligence system that reduces medicine costs without compromising clinical safety. It interprets prescriptions at the **salt (active ingredient) and dosage level**, then identifies **safe, regulatorily approved, lower-cost alternatives** across brands and pharmacies.
 
-The system does not replace doctors or alter treatment intent. It operates strictly within pharmaceutical equivalence and substitution boundaries, functioning as infrastructure inside the prescription workflow rather than a consumer shopping app.
+The system does not replace doctors or alter treatment intent. It operates strictly within pharmaceutical equivalence and substitution boundaries, functioning as clinical infrastructure rather than a consumer shopping app.
 
 ---
 
@@ -52,25 +52,110 @@ saltwise/
 
 ---
 
+## Product Architecture: Search-Centric Design
+
+Saltwise is built around a **unified search experience**. The search results page is the core of the product. A dedicated history page gives authenticated users a way to revisit past searches and track savings over time.
+
+### User Flow
+
+```
+Landing Page (/) --> Search Input --> Results Page (/search?q=...)
+                                          |
+                                          +--> Medicine Info
+                                          +--> Generic Alternatives
+                                          +--> Price Comparisons
+                                          +--> Safety Checks
+                                          +--> AI Explanations
+
+History Page (/history) --> Past Searches --> Click to Re-search
+                               |
+                               +--> Saved Medicines
+                               +--> Prescription Upload History
+                               +--> Cumulative Savings Tracker
+```
+
+### Route Structure
+
+| Route | Purpose |
+|---|---|
+| `/` | Landing page with hero, search bar, and CTA |
+| `/search?q=...` | **Core page** - Search results with full medicine intelligence |
+| `/history` | Search history, saved medicines, prescription uploads, savings tracker (auth required) |
+| `/auth/callback` | Supabase OAuth callback |
+
+### Search Behavior
+
+The search bar on the landing page (and persistent in the header) accepts two types of input:
+
+1. **Medicine lookups** - Direct drug/salt names like "Dolo 650", "Paracetamol 500mg", "Augmentin". These trigger a database lookup and return structured results with alternatives and pricing.
+
+2. **Natural language queries** - Questions like "What is the best alternative for Augmentin?", "Is Crocin the same as Dolo?", "Cheapest blood pressure medicine?". These are routed to the LLM, which uses the drug database as context to provide grounded, medically accurate answers.
+
+The search results page (`/search`) is the **primary surface of the entire application**. It must be rich, informative, and trustworthy.
+
+### Search Results Page - What It Shows
+
+When a user searches for a medicine (e.g., "Dolo 650"), the results page displays:
+
+#### Medicine Identity Card
+- Brand name, salt/active ingredient (INN), strength, dosage form
+- Manufacturer name and GMP certification status
+- Regulatory approval status
+- Drug class/category
+
+#### Generic Alternatives Section
+- List of all equivalent generics (same salt + strength + form)
+- Each alternative shows: brand name, manufacturer, price, savings vs original
+- Safety tier labels: "Exact Generic" or "Therapeutic Equivalent"
+- Sorted by: safety > regulatory trust > price
+- NTI (Narrow Therapeutic Index) drugs flagged as non-substitutable with explanation
+
+#### Price Comparison Table
+- Price per unit across multiple pharmacies (1mg, PharmEasy, Netmeds, Apollo)
+- Pack size options and full course cost calculation
+- Price confidence indicators (live / recent / cached / estimated)
+- "Best deal" highlighting
+
+#### Safety Information
+- Drug-drug interactions (if user has searched multiple medicines or has a session)
+- Dosage information and max daily limits
+- Common side effects
+- Pregnancy/lactation risk category
+- Age-based warnings (pediatric/geriatric)
+
+#### AI-Powered Explanations
+- Plain-language explanation of why each alternative is safe
+- "Why is this cheaper?" contextual explanation
+- Inline AI chat for follow-up questions about the medicine
+
+#### Prescription Upload (Secondary Input)
+- Small upload zone integrated into the search flow
+- Users can upload a prescription image/PDF
+- AI-powered OCR extracts medicine names
+- Each extracted medicine populates the results page as if searched individually
+- Shows all medicines from the prescription with alternatives and total cost savings
+
+---
+
 ## System Architecture
 
-### 1. Prescription Ingestion Layer
+### 1. Unified Search Layer
 
-**Purpose**: Accept and parse prescriptions into structured, salt-level data.
+**Purpose**: Single entry point for all medicine intelligence queries.
 
-- Accepts digital uploads (images, PDFs) or manual text entry.
-- AI-powered OCR and NLP pipeline extracts:
-  - Medicine names (brand and/or generic)
-  - Strengths and dosage forms (tablet, capsule, syrup, etc.)
-  - Dosage schedules and course duration
-  - Doctor notes and special instructions
-- Converts brand-heavy prescriptions into a **normalized salt-level representation**.
-- Stores raw and parsed prescription data for audit.
+- Accepts text queries (medicine names, salts, natural language questions)
+- Accepts prescription image uploads as a secondary input
+- Routes queries to either:
+  - **Database lookup** (exact/fuzzy match on drug or salt names)
+  - **LLM pipeline** (natural language questions, ambiguous queries)
+  - **Both** (LLM uses DB results as grounding context)
+- Returns structured results optimized for the search results page
 
-**Key Models**:
-- `prescriptions` - raw upload metadata, status, patient linkage
-- `prescription_items` - individual medicines parsed from a prescription
-- `parsed_medicines` - normalized salt + strength + form representation
+**Query Classification Logic**:
+- If query matches a known drug/salt name -> DB lookup + enrich with alternatives/pricing
+- If query is a natural language question -> LLM with drug DB context
+- If query is ambiguous -> DB fuzzy search + LLM interpretation in parallel
+- If input is an image -> OCR pipeline -> extract medicines -> multi-search
 
 ### 2. Medical Intelligence Layer
 
@@ -106,18 +191,16 @@ saltwise/
 **Key Logic**:
 - Narrow Therapeutic Index (NTI) drugs are flagged as non-substitutable by default.
 - Extended-release, enteric-coated, and specialized formulations are matched only to identical formulation types.
-- Doctor-marked "non-substitutable" medicines bypass this layer entirely.
 
 ### 4. Cost Optimization Engine
 
-**Purpose**: Find the cheapest safe configuration for the full treatment course.
+**Purpose**: Find the cheapest safe option and make savings transparent.
 
 - Calculates **real treatment cost** (full course), not per-strip pricing that obscures true expense.
 - Compares prices across:
   - Multiple pharmacy chains and online pharmacies
   - Different brands of the same salt
   - Different pack sizes (price-per-unit optimization)
-- Suggests **split-pharmacy fulfillment** when buying different medicines from different pharmacies yields meaningful savings.
 - Produces a clear cost breakdown:
   - Original prescription cost (branded)
   - Optimized cost (generic/equivalent)
@@ -128,50 +211,56 @@ saltwise/
 - Prices are cached with TTL and staleness indicators.
 - Price confidence levels: `live` > `recent` (< 24h) > `cached` (< 7d) > `estimated`.
 
-### 5. Availability & Fulfillment Layer
+### 5. Prescription OCR & Parsing (Secondary Input)
 
-**Purpose**: Ensure recommended medicines are actually obtainable.
+**Purpose**: Accept prescription images and extract medicine data into the search flow.
 
-- Aggregates real-time or near-real-time pharmacy stock data.
-- Provides:
-  - **Stock status** per pharmacy per medicine
-  - **Reserve/hold** functionality (where pharmacy APIs support it)
-  - **Redirect** to alternative pharmacies when primary is out of stock
-  - **Pickup vs delivery** options
-- Graceful degradation: operates with placeholder/estimated availability in early deployment stages, upgrades to live feeds as pharmacy integrations mature.
+- Accepts image uploads (photos, scans) and PDFs
+- AI-powered OCR and NLP pipeline extracts:
+  - Medicine names (brand and/or generic)
+  - Strengths and dosage forms
+  - Quantities
+- Converts extracted medicines into search queries
+- Each medicine from the prescription is displayed on the results page with full alternative/pricing intelligence
+- Shows aggregate savings across all medicines in the prescription
 
-### 6. Doctor Controls & Accountability
-
-**Purpose**: Preserve clinical authority and create audit trails.
-
-- Doctors can mark specific medicines as **non-substitutable** (brand-medically-necessary).
-- All substitutions are logged with:
-  - Original medicine and recommended alternative
-  - Clinical rationale for equivalence
-  - Safety checks performed
-  - Cost comparison
-  - Timestamp and system version
-- Transparent audit trail for clinical review, legal compliance, and dispute resolution.
-
-### 7. Patient Communication Layer
+### 6. Patient Communication & Trust
 
 **Purpose**: Build trust through clarity.
 
 - **Plain-language explanations** for every substitution ("This contains the same active ingredient, Paracetamol 500mg, made by a different manufacturer").
 - **Side-by-side comparison**: brand vs generic showing salt, strength, form, manufacturer, and efficacy equivalence.
-- **Adherence support**:
-  - Dosage reminders tied to the actual medicines dispensed
-  - Pill identification (appearance description to avoid confusion when switching brands)
-  - Course completion tracking
-- **No jargon** mode for patients; detailed clinical mode for doctors/pharmacists.
-
-### 8. Transparency & Safety Guarantees
-
+- **No jargon** mode for patients; detailed clinical mode for healthcare professionals.
+- **Confidence scores** on every recommendation.
 - Clear distinction between **verified medical data** (drug databases, interaction data) and **market-derived pricing** (scraped, estimated).
-- No hidden substitutions - every recommendation is visible and explained.
-- No pharmacy-biased recommendations - Saltwise has no financial relationship with pharmacies that would influence suggestions.
-- All AI-generated content (parsing, explanations) is clearly labeled as AI-assisted.
-- Confidence scores on every recommendation.
+- All AI-generated content is clearly labeled as AI-assisted.
+
+### 7. Authentication & User Features
+
+**Purpose**: Enable personalization and saved data.
+
+- Supabase Auth with Google OAuth
+- Authenticated users can:
+  - View full search history on the `/history` page
+  - Bookmark medicines and alternatives
+  - Set up a medicine profile (current medications for interaction checking)
+  - Track prescription uploads over time
+  - See cumulative savings across all searches
+- Anonymous users get full search functionality without saving
+
+### 8. History Page
+
+**Purpose**: Give authenticated users a persistent record of their activity and savings.
+
+The `/history` page is the secondary surface of the app (after search results). It shows:
+
+- **Search History** - Chronological list of past searches with timestamps. Click any entry to re-run the search with fresh data.
+- **Saved Medicines** - Bookmarked drugs and their alternatives. Quick access to medicines the user cares about.
+- **Prescription Uploads** - Past prescription uploads with parsed results. Each shows the medicines found and savings achieved.
+- **Cumulative Savings Tracker** - Running total of potential savings across all searches. "You've found X in potential savings across Y searches."
+- **Medicine Profile** - User's current medications list, used for automatic interaction checking on every search.
+
+The page requires authentication. Unauthenticated users who navigate to `/history` are prompted to sign in.
 
 ---
 
@@ -183,26 +272,27 @@ AI is used **only where ambiguity exists**. The core logic is deterministic.
 
 | Task | AI Role | Deterministic Fallback |
 |---|---|---|
-| Prescription OCR/parsing | Primary (image-to-text, entity extraction) | Manual entry form |
+| Natural language query understanding | Primary (intent classification, entity extraction) | Direct DB lookup |
+| Prescription OCR/parsing | Primary (image-to-text, entity extraction) | Manual text entry |
 | Medicine name normalization | Assist (fuzzy brand-to-salt matching) | Exact lookup in drug database |
 | Patient explanations | Primary (natural language generation) | Template-based explanations |
 | Interaction summarization | Assist (severity explanation) | Coded severity levels |
-| Dosage validation | Secondary (edge case detection) | Rule-based max-dose checks |
+| Follow-up Q&A | Primary (conversational, context-aware) | Links to drug info pages |
 
 **Model Selection**:
-- **Groq** (LLaMA models): Fast inference for real-time prescription parsing and conversational interactions.
+- **Groq** (LLaMA models): Fast inference for real-time search queries, prescription parsing, and conversational interactions.
 - **Cerebras** (Wafer-scale models): High-throughput batch processing for bulk price comparison and drug database enrichment tasks.
 
 ### Vercel AI SDK Integration
 
-- `ai` package for streaming responses in prescription analysis.
+- `ai` package for streaming responses in search results and chat.
 - `@ai-sdk/groq` and `@ai-sdk/cerebras` provider packages.
 - Server Actions and Route Handlers for AI endpoints.
-- Structured output (JSON mode) for prescription parsing to ensure reliable data extraction.
+- Structured output (JSON mode) for prescription parsing and query classification.
 
 ---
 
-## Database Schema (Planned)
+## Database Schema
 
 Core tables (all prefixed `saltwise_` in Drizzle config):
 
@@ -216,77 +306,93 @@ manufacturers            # Pharmaceutical companies
 drug_interactions        # Pairwise interaction data with severity
 contraindications        # Age, pregnancy, condition-based restrictions
 
+-- User Data
+users                    # Patients (Supabase Auth linked)
+search_history           # Log of all searches (query, timestamp, result drug_id)
+saved_medicines          # Bookmarked drugs
+medicine_profiles        # User's current medications (for interaction checking)
+
 -- Prescription Flow
-users                    # Patients and doctors
 prescriptions            # Uploaded prescriptions (metadata, status)
-prescription_items       # Individual medicines from a prescription
-substitution_results     # AI/engine-generated alternatives per item
-substitution_logs        # Audit trail of all recommendations
+prescription_items       # Individual medicines parsed from a prescription
 
 -- Pricing & Availability
-pharmacies               # Pharmacy locations and API integrations
+pharmacies               # Pharmacy sources and API integrations
 drug_prices              # Price per drug per pharmacy (with timestamp, confidence)
-pharmacy_availability    # Stock status per drug per pharmacy
-
--- Patient Features
-adherence_records        # Dose tracking
-saved_prescriptions      # Patient prescription history
 ```
 
 ---
 
-## API Routes (Planned)
+## API Routes
 
 ```
-POST   /api/prescriptions/upload     # Upload prescription image/PDF
-POST   /api/prescriptions/parse      # AI-parse uploaded prescription
-GET    /api/prescriptions/:id        # Get parsed prescription with items
-POST   /api/prescriptions/:id/optimize  # Run cost optimization
+# Search (Core)
+GET    /api/search?q=&type=          # Unified search endpoint (medicine lookup + NL queries)
+POST   /api/search/prescription      # Upload prescription image, parse, return results
 
-GET    /api/drugs/search              # Search drugs by name/salt
-GET    /api/drugs/:id/alternatives    # Get generic alternatives for a drug
-GET    /api/drugs/:id/interactions    # Check interactions with other drugs
+# Drug Data
+GET    /api/drugs/search?q=          # Search drugs by name/salt (DB-level)
+GET    /api/drugs/[id]/alternatives   # Get generic alternatives for a drug
+GET    /api/drugs/[id]/info           # Detailed drug information
+GET    /api/drugs/[id]/interactions   # Check interactions with other drugs
 
-GET    /api/salts/search              # Search salts/active ingredients
-GET    /api/salts/:id/brands          # All brands for a given salt
+# Salts
+GET    /api/salts/search?q=          # Search salts/active ingredients
+GET    /api/salts/[id]/brands        # All brands for a given salt
 
-POST   /api/compare/prices            # Compare prices across pharmacies
-GET    /api/pharmacies/nearby          # Nearby pharmacies with availability
+# Pricing
+POST   /api/prices/compare           # Compare prices across pharmacies
+POST   /api/prices/refresh           # Trigger fresh price scrape for a drug
 
-POST   /api/ai/chat                   # Conversational AI for patient queries
-POST   /api/ai/explain                # Generate plain-language explanation
+# AI
+POST   /api/ai/chat                  # Conversational AI for patient queries (streaming)
+POST   /api/ai/explain               # Generate plain-language explanation
+
+# History (Auth required)
+GET    /api/history                   # Get user's search history (paginated)
+GET    /api/history/savings           # Get cumulative savings stats
+GET    /api/saved-medicines           # Get user's bookmarked medicines
+POST   /api/saved-medicines           # Bookmark a medicine
+DELETE /api/saved-medicines/[id]      # Remove a bookmark
+
+# Auth
+GET    /auth/callback                # Supabase OAuth callback
 ```
 
 ---
 
 ## Key Design Principles
 
-1. **Safety over savings** - Clinical rules always override cost optimization. A cheaper drug that is contraindicated is never recommended.
+1. **Search is the product** - The search results page is the core surface. Every feature serves the search experience. The history page complements it by giving users a persistent record.
 
-2. **Deterministic core** - Drug interactions, dosage limits, and substitution rules are rule-based. AI handles ambiguity (OCR, fuzzy matching, natural language) but never makes clinical decisions.
+2. **Safety over savings** - Clinical rules always override cost optimization. A cheaper drug that is contraindicated is never recommended.
 
-3. **Modular isolation** - Prescription parsing, medical validation, pricing, and availability are separate layers. Each can be tested, updated, and scaled independently.
+3. **Deterministic core** - Drug interactions, dosage limits, and substitution rules are rule-based. AI handles ambiguity (NL queries, OCR, fuzzy matching, natural language) but never makes clinical decisions.
 
-4. **Regional scalability** - Drug brands differ by country, but salts (INNs) are universal. The salt-level architecture allows expansion to any market by adding brand mappings.
+4. **Modular isolation** - Medical validation, pricing, and AI are separate layers. Each can be tested, updated, and scaled independently.
 
-5. **Transparency** - Every recommendation includes its reasoning. No black-box substitutions.
+5. **Regional scalability** - Drug brands differ by country, but salts (INNs) are universal. The salt-level architecture allows expansion to any market by adding brand mappings.
 
-6. **No pharmacy bias** - Recommendations are ranked by safety and cost, never by pharmacy margin or partnership.
+6. **Transparency** - Every recommendation includes its reasoning. No black-box substitutions.
+
+7. **No pharmacy bias** - Recommendations are ranked by safety and cost, never by pharmacy margin or partnership.
 
 ---
 
 ## Environment Variables
 
 ```
-DATABASE_URL          # Supabase PostgreSQL connection string
-GROQ_API_KEY          # Groq API key for LLM inference
-CEREBRAS_API_KEY      # Cerebras API key for batch AI tasks
-FIRECRAWL_API_KEY     # Firecrawl API key for pharmacy scraping
-NEXT_PUBLIC_APP_URL   # Public application URL
+DATABASE_URL              # Supabase PostgreSQL connection string
+GROQ_API_KEY              # Groq API key for LLM inference
+CEREBRAS_API_KEY          # Cerebras API key for batch AI tasks
+FIRECRAWL_API_KEY         # Firecrawl API key for pharmacy scraping
+NEXT_PUBLIC_APP_URL       # Public application URL
+NEXT_PUBLIC_SUPABASE_URL  # Supabase project URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY  # Supabase anon key
 ```
 
 ---
 
 ## Target Outcome
 
-Saltwise reduces medicine costs, increases generic adoption, improves treatment adherence, and restores trust in substitutions by making the reasoning explicit and medically grounded. It is clinical infrastructure, not a shopping app.
+Saltwise reduces medicine costs, increases generic adoption, and restores trust in substitutions by making the reasoning explicit and medically grounded. It is clinical infrastructure, not a shopping app. The core experience lives in a powerful search page, with a history page to track activity and savings over time.
