@@ -1,42 +1,59 @@
 "use client";
 
 import { Kbd } from "@saltwise/ui/components/kbd";
+import { useQuery } from "@tanstack/react-query";
 import { PillIcon, SearchIcon, SparklesIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { getPopularMedicines, searchMedicines } from "@/app/actions";
 import { useChatStore } from "@/hooks/use-chat-store";
-import { MOCK_DRUGS } from "@/lib/mock-data";
+import { useDebounce } from "@/hooks/use-debounce";
 import { RecentChats } from "./recent-chats";
-
-const PLACEHOLDER_MEDICINES = [
-  "Dolo 650",
-  "Crocin Advance",
-  "Augmentin 625",
-  "Pan 40",
-  "Thyronorm 100mcg",
-  "Shelcal 500",
-];
-
-const POPULAR_SEARCHES = [
-  { label: "Dolo 650", salt: "Paracetamol" },
-  { label: "Pan 40", salt: "Pantoprazole" },
-  { label: "Augmentin", salt: "Amoxycillin" },
-  { label: "Thyronorm", salt: "Thyroxine" },
-  { label: "Shelcal", salt: "Calcium + D3" },
-];
 
 export function QuickSearch() {
   const [query, setQuery] = useState("");
+  const debouncedQuery = useDebounce(query, 300);
   const [isFocused, setIsFocused] = useState(false);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [placeholderText, setPlaceholderText] = useState("");
   const [isTyping, setIsTyping] = useState(true);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [suggestions, setSuggestions] = useState<
+    { id: string; brandName: string; salt: string; form: string }[]
+  >([]);
+  const [placeholders, setPlaceholders] = useState<string[]>([
+    "Dolo 650",
+    "Crocin Advance",
+  ]);
+
+  const { data: popularSearches = [] } = useQuery({
+    queryKey: ["popular-medicines"],
+    queryFn: () => getPopularMedicines(),
+    staleTime: 1000 * 60 * 60, // 1 hour
+  });
+
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
-
   const { startNewChat } = useChatStore();
+
+  useEffect(() => {
+    if (popularSearches.length > 0) {
+      setPlaceholders(popularSearches.map((p) => p.label));
+    }
+  }, [popularSearches]);
+
+  useEffect(() => {
+    async function fetchSuggestions() {
+      if (debouncedQuery.length >= 2 && !debouncedQuery.startsWith("@")) {
+        const results = await searchMedicines(debouncedQuery);
+        setSuggestions(results);
+      } else {
+        setSuggestions([]);
+      }
+    }
+    fetchSuggestions();
+  }, [debouncedQuery]);
 
   // Animated placeholder typing effect
   useEffect(() => {
@@ -44,7 +61,7 @@ export function QuickSearch() {
       return;
     }
 
-    const targetText = PLACEHOLDER_MEDICINES[placeholderIndex];
+    const targetText = placeholders[placeholderIndex];
     if (!targetText) {
       return;
     }
@@ -70,9 +87,7 @@ export function QuickSearch() {
           charIndex--;
           timeout = setTimeout(deleteChar, 30);
         } else {
-          setPlaceholderIndex(
-            (prev) => (prev + 1) % PLACEHOLDER_MEDICINES.length
-          );
+          setPlaceholderIndex((prev) => (prev + 1) % placeholders.length);
           setIsTyping(true);
         }
       };
@@ -80,7 +95,7 @@ export function QuickSearch() {
     }
 
     return () => clearTimeout(timeout);
-  }, [placeholderIndex, isTyping, query.length]);
+  }, [placeholderIndex, isTyping, query.length, placeholders]);
 
   // Keyboard shortcut: Cmd/Ctrl + K
   useEffect(() => {
@@ -110,14 +125,7 @@ export function QuickSearch() {
 
   const isSaltyQuery = query.startsWith("@");
 
-  const filteredSuggestions =
-    !isSaltyQuery && query.length >= 2
-      ? MOCK_DRUGS.filter(
-          (drug) =>
-            drug.brandName.toLowerCase().includes(query.toLowerCase()) ||
-            drug.salt.toLowerCase().includes(query.toLowerCase())
-        ).slice(0, 5)
-      : [];
+  const filteredSuggestions = suggestions;
 
   const showSuggestions = isFocused && filteredSuggestions.length > 0;
 
@@ -340,12 +348,12 @@ export function QuickSearch() {
             <SparklesIcon className="size-3" />
             Popular
           </span>
-          {POPULAR_SEARCHES.map((item) => (
+          {popularSearches.map((item) => (
             <button
               className={
                 "group/pill inline-flex items-center gap-1.5 rounded-full border border-border/40 bg-white/50 px-3 py-1 font-medium text-foreground/70 text-xs shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-primary/30 hover:bg-primary/5 hover:text-foreground hover:shadow-md active:scale-95 dark:bg-white/5"
               }
-              key={item.label}
+              key={item.id}
               onClick={() => navigateToSearch(item.label)}
               type="button"
             >

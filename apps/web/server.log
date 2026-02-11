@@ -1,0 +1,320 @@
+▲ Next.js 16.1.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://172.25.186.243:3000
+- Environments: .env
+
+✓ Starting...
+✓ Ready in 708ms
+ GET /api/drugs/6bf1b67e-111d-45ae-91d3-021ddf2f3f94 200 in 1152ms (compile: 593ms, proxy.ts: 99ms, render: 461ms)
+[2026-02-11 10:12:12.820 +0530] (saltwise): [36mStarting drug insights generation[39m
+    [35mseverity[39m: "DEBUG"
+    [35mmodule[39m: "ai"
+    [35mdrugId[39m: "6bf1b67e-111d-45ae-91d3-021ddf2f3f94"
+    [35mmodel[39m: "llama-3.3-70b-versatile"
+AI insights API error: Error: Failed query: select "id", "drug_id", "cache_type", "content", "model", "salt_composition", "created_at", "expires_at" from "saltwise_drug_ai_cache" where ("saltwise_drug_ai_cache"."drug_id" = $1 and "saltwise_drug_ai_cache"."expires_at" > $2) limit $3
+params: 6bf1b67e-111d-45ae-91d3-021ddf2f3f94,2026-02-11T04:42:12.821Z,3
+    at processTicksAndRejections (null) {
+  query: 'select "id", "drug_id", "cache_type", "content", "model", "salt_composition", "created_at", "expires_at" from "saltwise_drug_ai_cache" where ("saltwise_drug_ai_cache"."drug_id" = $1 and "saltwise_drug_ai_cache"."expires_at" > $2) limit $3',
+  params: [Array],
+  [cause]: Error [PostgresError]: relation "saltwise_drug_ai_cache" does not exist
+      at addChunk (internal:streams/readable:264:47)
+      at readableAddChunkPushByteMode (internal:streams/readable:242:18) {
+    severity_local: 'ERROR',
+    severity: 'ERROR',
+    code: '42P01',
+    position: '111',
+    file: 'parse_relation.c',
+    routine: 'parserOpenTable'
+  }
+}
+ GET /api/drugs/6bf1b67e-111d-45ae-91d3-021ddf2f3f94/ai 500 in 693ms (compile: 570ms, proxy.ts: 1805µs, render: 122ms)
+  Reload env: .env
+  Reload env: .env
+[Error: Unable to connect. Is the computer able to access the url?] {
+  code: 'ConnectionRefused',
+  path: 'https://hznstjwqxeeukdsqsypx.supabase.co/auth/v1/token?grant_type=refresh_token',
+  errno: 0
+}
+[Error: Was there a typo in the url or port?] {
+  code: 'FailedToOpenSocket',
+  path: 'https://hznstjwqxeeukdsqsypx.supabase.co/auth/v1/token?grant_type=refresh_token',
+  errno: 0
+}
+[Error: Unable to connect. Is the computer able to access the url?] {
+  code: 'ConnectionRefused',
+  path: 'https://hznstjwqxeeukdsqsypx.supabase.co/auth/v1/token?grant_type=refresh_token',
+  errno: 0
+}
+[Error: Was there a typo in the url or port?] {
+  code: 'FailedToOpenSocket',
+  path: 'https://hznstjwqxeeukdsqsypx.supabase.co/auth/v1/token?grant_type=refresh_token',
+  errno: 0
+}
+[Error: Unable to connect. Is the computer able to access the url?] {
+  code: 'ConnectionRefused',
+  path: 'https://hznstjwqxeeukdsqsypx.supabase.co/auth/v1/token?grant_type=refresh_token',
+  errno: 0
+}
+[Error: Was there a typo in the url or port?] {
+  code: 'FailedToOpenSocket',
+  path: 'https://hznstjwqxeeukdsqsypx.supabase.co/auth/v1/token?grant_type=refresh_token',
+  errno: 0
+}
+[Error: Unable to connect. Is the computer able to access the url?] {
+  code: 'ConnectionRefused',
+  path: 'https://hznstjwqxeeukdsqsypx.supabase.co/auth/v1/token?grant_type=refresh_token',
+  errno: 0
+}
+Error [AuthRetryableFetchError]: Unable to connect. Is the computer able to access the url?
+    at processTicksAndRejections (null) {
+  __isAuthError: true,
+  status: 0,
+  code: undefined
+}
+Error [AuthRetryableFetchError]: Unable to connect. Is the computer able to access the url?
+    at processTicksAndRejections (null) {
+  __isAuthError: true,
+  status: 0,
+  code: undefined
+}
+ GET /medicine/498d3fc2-ca15-4a9f-a6e9-f1e3ffc39b46 200 in 18.6s (compile: 559ms, proxy.ts: 17.8s, render: 272ms)
+[Error: Was there a typo in the url or port?] {
+  code: 'FailedToOpenSocket',
+  path: 'https://hznstjwqxeeukdsqsypx.supabase.co/auth/v1/token?grant_type=refresh_token',
+  errno: 0
+}
+[Error: Unable to connect. Is the computer able to access the url?] {
+  code: 'ConnectionRefused',
+  path: 'https://hznstjwqxeeukdsqsypx.supabase.co/auth/v1/token?grant_type=refresh_token',
+  errno: 0
+}
+[Error: Was there a typo in the url or port?] {
+  code: 'FailedToOpenSocket',
+  path: 'https://hznstjwqxeeukdsqsypx.supabase.co/auth/v1/token?grant_type=refresh_token',
+  errno: 0
+}
+[Error: Unable to connect. Is the computer able to access the url?] {
+  code: 'ConnectionRefused',
+  path: 'https://hznstjwqxeeukdsqsypx.supabase.co/auth/v1/token?grant_type=refresh_token',
+  errno: 0
+}
+[Error: Was there a typo in the url or port?] {
+  code: 'FailedToOpenSocket',
+  path: 'https://hznstjwqxeeukdsqsypx.supabase.co/auth/v1/token?grant_type=refresh_token',
+  errno: 0
+}
+[Error: Unable to connect. Is the computer able to access the url?] {
+  code: 'ConnectionRefused',
+  path: 'https://hznstjwqxeeukdsqsypx.supabase.co/auth/v1/token?grant_type=refresh_token',
+  errno: 0
+}
+[Error: Was there a typo in the url or port?] {
+  code: 'FailedToOpenSocket',
+  path: 'https://hznstjwqxeeukdsqsypx.supabase.co/auth/v1/token?grant_type=refresh_token',
+  errno: 0
+}
+[Error: Unable to connect. Is the computer able to access the url?] {
+  code: 'ConnectionRefused',
+  path: 'https://hznstjwqxeeukdsqsypx.supabase.co/auth/v1/token?grant_type=refresh_token',
+  errno: 0
+}
+[Error: Was there a typo in the url or port?] {
+  code: 'FailedToOpenSocket',
+  path: 'https://hznstjwqxeeukdsqsypx.supabase.co/auth/v1/token?grant_type=refresh_token',
+  errno: 0
+}
+[Error: Unable to connect. Is the computer able to access the url?] {
+  code: 'ConnectionRefused',
+  path: 'https://hznstjwqxeeukdsqsypx.supabase.co/auth/v1/token?grant_type=refresh_token',
+  errno: 0
+}
+[Error: Was there a typo in the url or port?] {
+  code: 'FailedToOpenSocket',
+  path: 'https://hznstjwqxeeukdsqsypx.supabase.co/auth/v1/token?grant_type=refresh_token',
+  errno: 0
+}
+[Error: Unable to connect. Is the computer able to access the url?] {
+  code: 'ConnectionRefused',
+  path: 'https://hznstjwqxeeukdsqsypx.supabase.co/auth/v1/token?grant_type=refresh_token',
+  errno: 0
+}
+[Error: Was there a typo in the url or port?] {
+  code: 'FailedToOpenSocket',
+  path: 'https://hznstjwqxeeukdsqsypx.supabase.co/auth/v1/token?grant_type=refresh_token',
+  errno: 0
+}
+[Error: Unable to connect. Is the computer able to access the url?] {
+  code: 'ConnectionRefused',
+  path: 'https://hznstjwqxeeukdsqsypx.supabase.co/auth/v1/token?grant_type=refresh_token',
+  errno: 0
+}
+[Error: Was there a typo in the url or port?] {
+  code: 'FailedToOpenSocket',
+  path: 'https://hznstjwqxeeukdsqsypx.supabase.co/auth/v1/token?grant_type=refresh_token',
+  errno: 0
+}
+Error [AuthRetryableFetchError]: Was there a typo in the url or port?
+    at processTicksAndRejections (null) {
+  __isAuthError: true,
+  status: 0,
+  code: undefined
+}
+Error [AuthRetryableFetchError]: Was there a typo in the url or port?
+    at processTicksAndRejections (null) {
+  __isAuthError: true,
+  status: 0,
+  code: undefined
+}
+Error [AuthUnknownError]: Failed to parse JSON
+    at processTicksAndRejections (null) {
+  __isAuthError: true,
+  status: undefined,
+  code: undefined,
+  originalError: SyntaxError: Failed to parse JSON
+      at json (null)
+      at processTicksAndRejections (null)
+}
+Error [AuthUnknownError]: Failed to parse JSON
+    at processTicksAndRejections (null) {
+  __isAuthError: true,
+  status: undefined,
+  code: undefined,
+  originalError: SyntaxError: Failed to parse JSON
+      at json (null)
+      at processTicksAndRejections (null)
+}
+AI insights API error: Error: Failed query: select "id", "brand_name", "salt_composition", "strength", "form", "manufacturer" from "saltwise_drugs" where "saltwise_drugs"."id" = $1 limit $2
+params: 498d3fc2-ca15-4a9f-a6e9-f1e3ffc39b46,1
+    at processTicksAndRejections (null) {
+  query: 'select "id", "brand_name", "salt_composition", "strength", "form", "manufacturer" from "saltwise_drugs" where "saltwise_drugs"."id" = $1 limit $2',
+  params: [Array],
+  [cause]: Error [PostgresError]: Tenant or user not found
+      at addChunk (internal:streams/readable:264:47)
+      at readableAddChunkPushByteMode (internal:streams/readable:242:18) {
+    severity_local: 'FATAL',
+    severity: 'FATAL',
+    code: 'XX000'
+  }
+}
+ GET /api/drugs/498d3fc2-ca15-4a9f-a6e9-f1e3ffc39b46/ai 500 in 26.2s (compile: 49ms, proxy.ts: 26.0s, render: 150ms)
+ GET /medicine/498d3fc2-ca15-4a9f-a6e9-f1e3ffc39b46 200 in 89ms (compile: 18ms, proxy.ts: 2ms, render: 69ms)
+Get Drug API error: Error: Failed query: select "id", "brand_name", "salt_composition", "salt_id", "strength", "form", "manufacturer", "image_url", "metadata", "created_at", "updated_at" from "saltwise_drugs" where "saltwise_drugs"."id" = $1 limit $2
+params: 498d3fc2-ca15-4a9f-a6e9-f1e3ffc39b46,1
+    at processTicksAndRejections (null) {
+  query: 'select "id", "brand_name", "salt_composition", "salt_id", "strength", "form", "manufacturer", "image_url", "metadata", "created_at", "updated_at" from "saltwise_drugs" where "saltwise_drugs"."id" = $1 limit $2',
+  params: [Array],
+  [cause]: Error: write CONNECTION_CLOSED aws-1-ap-south-1.pooler.supabase.com:6543
+      at <unknown> (Error: write CONNECTION_CLOSED aws-1-ap-south-1.pooler.supabase.com:6543) {
+    code: 'CONNECTION_CLOSED',
+    errno: 'CONNECTION_CLOSED',
+    address: [ 'aws-1-ap-south-1.pooler.supabase.com' ],
+    port: [ 6543 ]
+  }
+}
+ GET /api/drugs/498d3fc2-ca15-4a9f-a6e9-f1e3ffc39b46 500 in 41s (compile: 35ms, proxy.ts: 25.4s, render: 15.1s)
+✓ Compiled in 39ms
+⚠ Failed to reload dynamic routes: Error: You cannot use different slug names for the same dynamic path ('id' !== 'jobId').
+    at forEach (null)
+    at processTicksAndRejections (null)
+Error: You cannot use different slug names for the same dynamic path ('id' !== 'jobId').
+    at forEach (null)
+    at processTicksAndRejections (null)
+⨯ unhandledRejection: Error: You cannot use different slug names for the same dynamic path ('id' !== 'jobId').
+    at forEach (null)
+    at processTicksAndRejections (null)
+⨯ unhandledRejection:  Error: You cannot use different slug names for the same dynamic path ('id' !== 'jobId').
+    at forEach (null)
+    at processTicksAndRejections (null)
+Error: You cannot use different slug names for the same dynamic path ('id' !== 'jobId').
+    at forEach (null)
+    at processTicksAndRejections (null)
+Error: You cannot use different slug names for the same dynamic path ('id' !== 'jobId').
+    at forEach (null)
+    at processTicksAndRejections (null)
+Error: You cannot use different slug names for the same dynamic path ('id' !== 'jobId').
+    at forEach (null)
+    at processTicksAndRejections (null)
+Error: You cannot use different slug names for the same dynamic path ('id' !== 'jobId').
+    at forEach (null)
+    at processTicksAndRejections (null)
+Error: You cannot use different slug names for the same dynamic path ('id' !== 'jobId').
+    at forEach (null)
+    at processTicksAndRejections (null)
+Error: You cannot use different slug names for the same dynamic path ('id' !== 'jobId').
+    at forEach (null)
+    at processTicksAndRejections (null)
+Error: You cannot use different slug names for the same dynamic path ('id' !== 'jobId').
+    at forEach (null)
+    at processTicksAndRejections (null)
+Error: You cannot use different slug names for the same dynamic path ('id' !== 'jobId').
+    at forEach (null)
+    at processTicksAndRejections (null)
+Error: You cannot use different slug names for the same dynamic path ('id' !== 'jobId').
+    at forEach (null)
+    at processTicksAndRejections (null)
+Error: You cannot use different slug names for the same dynamic path ('id' !== 'jobId').
+    at forEach (null)
+    at processTicksAndRejections (null)
+Error: You cannot use different slug names for the same dynamic path ('id' !== 'jobId').
+    at forEach (null)
+    at processTicksAndRejections (null)
+Error: You cannot use different slug names for the same dynamic path ('id' !== 'jobId').
+    at forEach (null)
+    at processTicksAndRejections (null)
+Error: You cannot use different slug names for the same dynamic path ('id' !== 'jobId').
+    at forEach (null)
+    at processTicksAndRejections (null)
+Error: You cannot use different slug names for the same dynamic path ('id' !== 'jobId').
+    at forEach (null)
+    at processTicksAndRejections (null)
+Error: You cannot use different slug names for the same dynamic path ('id' !== 'jobId').
+    at forEach (null)
+    at processTicksAndRejections (null)
+Error: You cannot use different slug names for the same dynamic path ('id' !== 'jobId').
+    at forEach (null)
+    at processTicksAndRejections (null)
+Error: You cannot use different slug names for the same dynamic path ('id' !== 'jobId').
+    at forEach (null)
+    at processTicksAndRejections (null)
+Error: You cannot use different slug names for the same dynamic path ('id' !== 'jobId').
+    at forEach (null)
+    at processTicksAndRejections (null)
+Error: You cannot use different slug names for the same dynamic path ('id' !== 'jobId').
+    at forEach (null)
+    at processTicksAndRejections (null)
+Error: You cannot use different slug names for the same dynamic path ('id' !== 'jobId').
+    at forEach (null)
+    at processTicksAndRejections (null)
+⚠ Failed to reload dynamic routes: Error: You cannot use different slug names for the same dynamic path ('id' !== 'jobId').
+    at forEach (null)
+    at processTicksAndRejections (null)
+⚠ Failed to reload dynamic routes: Error: You cannot use different slug names for the same dynamic path ('id' !== 'jobId').
+    at forEach (null)
+    at processTicksAndRejections (null)
+⚠ Failed to reload dynamic routes: Error: You cannot use different slug names for the same dynamic path ('id' !== 'jobId').
+    at forEach (null)
+    at processTicksAndRejections (null)
+⚠ Failed to reload dynamic routes: Error: You cannot use different slug names for the same dynamic path ('id' !== 'jobId').
+    at forEach (null)
+    at processTicksAndRejections (null)
+⚠ Failed to reload dynamic routes: Error: You cannot use different slug names for the same dynamic path ('id' !== 'jobId').
+    at forEach (null)
+    at processTicksAndRejections (null)
+⚠ Failed to reload dynamic routes: Error: You cannot use different slug names for the same dynamic path ('id' !== 'jobId').
+    at forEach (null)
+    at processTicksAndRejections (null)
+⚠ Failed to reload dynamic routes: Error: You cannot use different slug names for the same dynamic path ('id' !== 'jobId').
+    at forEach (null)
+    at processTicksAndRejections (null)
+⚠ Failed to reload dynamic routes: Error: You cannot use different slug names for the same dynamic path ('id' !== 'jobId').
+    at forEach (null)
+    at processTicksAndRejections (null)
+⚠ Failed to reload dynamic routes: Error: You cannot use different slug names for the same dynamic path ('id' !== 'jobId').
+    at forEach (null)
+    at processTicksAndRejections (null)
+⚠ Failed to reload dynamic routes: Error: You cannot use different slug names for the same dynamic path ('id' !== 'jobId').
+    at forEach (null)
+    at processTicksAndRejections (null)
+⚠ Failed to reload dynamic routes: Error: You cannot use different slug names for the same dynamic path ('id' !== 'jobId').
+    at forEach (null)
+    at processTicksAndRejections (null)

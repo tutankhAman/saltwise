@@ -8,7 +8,7 @@ export const env = createEnv({
     DATABASE_URL: z.string().url("DATABASE_URL must be a valid URL"),
   },
   client: {
-    NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
+    NEXT_PUBLIC_SUPABASE_URL: z.url(),
     NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
   },
   experimental__runtimeEnv: {
