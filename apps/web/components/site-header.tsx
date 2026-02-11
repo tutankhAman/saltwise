@@ -31,8 +31,8 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { type SyntheticEvent, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { type SyntheticEvent, useEffect, useRef, useState } from "react";
 import { useUser } from "@/hooks/use-user";
 import { createClient } from "@/lib/supabase/client";
 
@@ -48,8 +48,10 @@ export function SiteHeader() {
   const { user } = useUser();
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const q = searchParams.get("q") ?? "";
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [navQuery, setNavQuery] = useState("");
+  const [navQuery, setNavQuery] = useState(q);
   const [searchFocused, setSearchFocused] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -73,7 +75,8 @@ export function SiteHeader() {
     const trimmed = navQuery.trim();
     if (trimmed) {
       router.push(`/search?q=${encodeURIComponent(trimmed)}`);
-      setNavQuery("");
+      // No need to clear navQuery if we want it to persist as the current search
+      // setNavQuery("");
       searchInputRef.current?.blur();
     }
   };

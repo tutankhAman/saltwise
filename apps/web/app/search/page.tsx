@@ -19,8 +19,9 @@ import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { MedicineCard } from "@/components/medicine-card";
 import { PrescriptionChips } from "@/components/prescription-chips";
 import { PrescriptionUpload } from "@/components/prescription-upload";
+import { SearchProgressUI } from "@/components/search-progress";
 import { useDebounce } from "@/hooks/use-debounce";
-import { searchMockDrugs } from "@/lib/mock-data";
+import type { SearchResult } from "@/lib/firecrawl/service";
 import type { DrugSearchResult, PrescriptionMedicine } from "@/lib/types";
 
 const PENDING_RX_KEY = "pendingPrescription";
@@ -30,7 +31,7 @@ function LoadingSkeleton() {
     <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
         <div
-          className="overflow-hidden rounded-2xl border border-border/40 bg-white/60 backdrop-blur-xl dark:bg-white/[0.04]"
+          className="overflow-hidden rounded-2xl border border-border/40 bg-white/60 backdrop-blur-xl dark:bg-white/4"
           key={i}
           style={{ animationDelay: `${i * 60}ms` }}
         >
@@ -53,8 +54,55 @@ function LoadingSkeleton() {
   );
 }
 
-/** Fetch search results from the API with mock fallback. */
-async function fetchSearchResults(query: string): Promise<DrugSearchResult[]> {
+interface DbDrugPrice {
+  pharmacy: string;
+  price: string;
+  url: string | null;
+  inStock: boolean | null;
+}
+
+interface DbGroupedDrug {
+  id: string;
+  brandName: string;
+  saltComposition: string | null;
+  manufacturer: string | null;
+  updatedAt: Date;
+  prices: DbDrugPrice[];
+}
+
+// Helper to map DB result shape to UI DrugSearchResult
+function mapDbToDrugSearchResult(dbResult: DbGroupedDrug): DrugSearchResult {
+  return {
+    drug: {
+      id: dbResult.id,
+      brandName: dbResult.brandName,
+      salt: dbResult.saltComposition ?? "Unknown",
+      strength: "N/A",
+      form: "Tablet",
+      manufacturer: dbResult.manufacturer || "Unknown",
+      manufacturerCountry: "India",
+      gmpCertified: true,
+      price: dbResult.prices[0]?.price ? Number(dbResult.prices[0].price) : 0,
+      packSize: 10,
+      regulatoryStatus: "approved",
+    },
+    alternatives: [],
+    prices: dbResult.prices.map((p) => ({
+      pharmacy: p.pharmacy,
+      price: Number(p.price),
+      packSize: 10,
+      perUnit: Number(p.price) / 10,
+      inStock: p.inStock ?? true,
+      confidence: "live" as const,
+      fetchedAt: new Date().toISOString(),
+    })),
+    isSubstitutable: true,
+  };
+}
+
+async function fetchSearchResults(
+  query: string
+): Promise<{ results: DrugSearchResult[]; jobId?: string }> {
   try {
     const res = await fetch(
       `/api/search?q=${encodeURIComponent(query)}&type=medicine`
@@ -63,15 +111,18 @@ async function fetchSearchResults(query: string): Promise<DrugSearchResult[]> {
       throw new Error("API not ready");
     }
 
-    const data = await res.json();
+    const data: SearchResult = await res.json();
 
-    if (data.type === "medicine" && Array.isArray(data.results)) {
-      return data.results as DrugSearchResult[];
+    if (Array.isArray(data.drugs)) {
+      return {
+        results: data.drugs.map(mapDbToDrugSearchResult),
+        jobId: data.jobId,
+      };
     }
-    return [];
-  } catch {
-    await new Promise((resolve) => setTimeout(resolve, 400));
-    return searchMockDrugs(query);
+    return { results: [] };
+  } catch (error) {
+    console.error(error);
+    return { results: [] };
   }
 }
 
@@ -112,9 +163,18 @@ function SearchContent() {
 
   const [query, setQuery] = useState(initialQuery);
   const debouncedQuery = useDebounce(query, 300);
+
+  // Sync query with URL params (e.g. when navigating from other pages or using nav search)
+  useEffect(() => {
+    if (initialQuery !== debouncedQuery) {
+      setQuery(initialQuery);
+    }
+  }, [initialQuery, debouncedQuery]);
+
   const [results, setResults] = useState<DrugSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [activeJobId, setActiveJobId] = useState<string | undefined>();
 
   // Prescription state
   const [prescriptionMedicines, setPrescriptionMedicines] = useState<
@@ -154,6 +214,7 @@ function SearchContent() {
   const resetResults = useCallback(() => {
     setResults([]);
     setHasSearched(false);
+    setActiveJobId(undefined);
   }, []);
 
   useEffect(() => {
@@ -164,10 +225,14 @@ function SearchContent() {
 
     setLoading(true);
     setHasSearched(true);
+    setActiveJobId(undefined);
 
     fetchSearchResults(debouncedQuery)
-      .then((medicineResults) => {
+      .then(({ results: medicineResults, jobId }) => {
         setResults(medicineResults);
+        if (jobId) {
+          setActiveJobId(jobId);
+        }
       })
       .finally(() => setLoading(false));
   }, [debouncedQuery, resetResults]);
@@ -214,6 +279,15 @@ function SearchContent() {
     setActiveChipIndex(null);
   }, []);
 
+  const handleJobComplete = useCallback(async () => {
+    setActiveJobId(undefined);
+    // Re-fetch results to show new data
+    if (debouncedQuery) {
+      const { results: newResults } = await fetchSearchResults(debouncedQuery);
+      setResults(newResults);
+    }
+  }, [debouncedQuery]);
+
   const hasPrescriptionMedicines = prescriptionMedicines.length > 0;
 
   return (
@@ -234,9 +308,9 @@ function SearchContent() {
 
           {/* Search input */}
           <div className="fade-in slide-in-from-bottom-2 mx-auto mt-8 max-w-xl animate-in fill-mode-forwards delay-150 duration-700 ease-out">
-            <div className="quick-search-container overflow-hidden rounded-2xl border border-border/40 bg-white/70 shadow-lg backdrop-blur-xl transition-all duration-300 focus-within:border-primary/40 focus-within:shadow-primary/5 focus-within:shadow-xl focus-within:ring-[3px] focus-within:ring-primary/10 hover:shadow-xl dark:bg-white/[0.05]">
+            <div className="quick-search-container overflow-hidden rounded-2xl border border-border/40 bg-white/70 shadow-lg backdrop-blur-xl transition-all duration-300 focus-within:border-primary/40 focus-within:shadow-primary/5 focus-within:shadow-xl focus-within:ring-[3px] focus-within:ring-primary/10 hover:shadow-xl dark:bg-white/5">
               {/* Top accent */}
-              <div className="h-px w-full bg-gradient-to-r from-transparent via-primary/20 to-transparent opacity-0 transition-opacity duration-500 focus-within:opacity-100" />
+              <div className="h-px w-full bg-linear-to-r from-transparent via-primary/20 to-transparent opacity-0 transition-opacity duration-500 focus-within:opacity-100" />
 
               <InputGroup className="h-14 border-0 bg-transparent shadow-none ring-0 focus-within:ring-0">
                 <InputGroupAddon className="pl-5">
@@ -302,10 +376,19 @@ function SearchContent() {
 
         {/* Results area */}
         <div className="space-y-6">
+          {activeJobId && (
+            <SearchProgressUI
+              isActive={!!activeJobId}
+              jobId={activeJobId}
+              onComplete={handleJobComplete}
+              query={debouncedQuery}
+            />
+          )}
+
           {loading && <LoadingSkeleton />}
 
           {/* No results */}
-          {!loading && hasSearched && results.length === 0 && (
+          {!loading && hasSearched && results.length === 0 && !activeJobId && (
             <div className="fade-in animate-in fill-mode-forwards duration-500">
               <Empty className="py-16">
                 <EmptyMedia variant="icon">
@@ -356,7 +439,7 @@ function SearchContent() {
               <div className="mx-auto max-w-md py-20 text-center">
                 {/* Decorative pill icon */}
                 <div className="relative mx-auto mb-6 flex size-20 items-center justify-center">
-                  <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary/10 to-accent/10" />
+                  <div className="absolute inset-0 rounded-full bg-linear-to-br from-primary/10 to-accent/10" />
                   <div className="absolute inset-1 rounded-full bg-white/80 backdrop-blur-sm dark:bg-white/5" />
                   <PillIcon
                     className="relative size-8 text-primary/60"
@@ -388,7 +471,7 @@ function SearchContent() {
                   {["Dolo 650", "Pan 40", "Augmentin", "Shelcal"].map(
                     (term) => (
                       <button
-                        className="inline-flex items-center rounded-full border border-border/40 bg-white/50 px-3 py-1.5 font-medium text-foreground/70 text-xs shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-primary/30 hover:bg-primary/5 hover:text-foreground hover:shadow-md active:scale-95 dark:bg-white/[0.04]"
+                        className="inline-flex items-center rounded-full border border-border/40 bg-white/50 px-3 py-1.5 font-medium text-foreground/70 text-xs shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-primary/30 hover:bg-primary/5 hover:text-foreground hover:shadow-md active:scale-95 dark:bg-white/4"
                         key={term}
                         onClick={() => setQuery(term)}
                         type="button"

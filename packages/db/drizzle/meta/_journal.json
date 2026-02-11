@@ -22,6 +22,20 @@
       "when": 1770746944693,
       "tag": "0002_wandering_nemesis",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1770758141053,
+      "tag": "0003_hesitant_leper_queen",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1770761557930,
+      "tag": "0004_uneven_korg",
+      "breakpoints": true
     }
   ]
 }

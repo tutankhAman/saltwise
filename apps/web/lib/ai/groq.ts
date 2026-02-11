@@ -4,6 +4,9 @@ import { env } from "@/lib/env";
 /** The model ID used for Salty chatbot */
 export const SALTY_MODEL = "openai/gpt-oss-120b" as const;
 
+/** The model ID used for drug insights generation (safety info, interactions, explanations) */
+export const INSIGHTS_MODEL = "llama-3.3-70b-versatile" as const;
+
 /** The model ID used for prescription OCR (vision-capable) */
 export const OCR_MODEL =
   "meta-llama/llama-4-maverick-17b-128e-instruct" as const;

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Instrument_Sans, Instrument_Serif, Outfit } from "next/font/google";
+import { Suspense } from "react";
 import { ChatDialog } from "@/components/chat/chat-dialog";
 import { ReactQueryProvider } from "@/components/providers/query-provider";
 import { SiteFooter } from "@/components/site-footer";
@@ -43,7 +44,9 @@ export default function RootLayout({
         className={`${instrumentSerif.variable} ${instrumentSans.variable} ${outfit.variable} font-body antialiased`}
       >
         <ReactQueryProvider>
-          <SiteHeader />
+          <Suspense>
+            <SiteHeader />
+          </Suspense>
           <main className="min-h-screen">{children}</main>
           <SiteFooter />
           <ChatDialog />
