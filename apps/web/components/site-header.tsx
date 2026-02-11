@@ -133,7 +133,7 @@ export function SiteHeader() {
 
           <div className="mx-0.5 h-4 w-px bg-black/6 dark:bg-white/10" />
 
-          <Link href="/history">
+          {/* <Link href="/history">
             <Button
               className="gap-2 rounded-full"
               size="sm"
@@ -142,7 +142,7 @@ export function SiteHeader() {
               <HistoryIcon className="size-3.5" data-icon="inline-start" />
               History
             </Button>
-          </Link>
+          </Link> */}
 
           <div className="mx-0.5 h-4 w-px bg-black/6 dark:bg-white/10" />
 
@@ -167,32 +167,35 @@ export function SiteHeader() {
               </Avatar>
               <span className="sr-only">Profile</span>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="min-w-[200px]">
               {user ? (
                 <>
-                  <div className="px-2 py-1.5">
+                  <div className="px-3 py-2.5">
                     <div className="flex flex-col space-y-1">
-                      <p className="font-medium text-sm leading-none">
+                      <p className="font-medium text-foreground text-sm leading-tight">
                         {user.user_metadata?.full_name ?? "User"}
                       </p>
-                      <p className="text-muted-foreground text-xs leading-none">
+                      <p className="text-muted-foreground/70 text-xs leading-tight">
                         {user.email}
                       </p>
                     </div>
                   </div>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
-                    className="text-red-600 focus:text-red-600"
+                    className="mx-1 mb-1 cursor-pointer rounded-md text-red-600/90 transition-colors hover:bg-red-50/80 focus:bg-red-50/80 focus:text-red-600 dark:focus:bg-red-950/20 dark:hover:bg-red-950/20"
                     onClick={handleLogout}
                   >
-                    <LogOut className="mr-2 size-4" />
-                    <span>Log out</span>
+                    <LogOut className="mr-2.5 size-3.5" strokeWidth={2} />
+                    <span className="text-sm">Log out</span>
                   </DropdownMenuItem>
                 </>
               ) : (
-                <DropdownMenuItem onClick={handleLogin}>
-                  <LogIn className="mr-2 size-4" />
-                  <span>Log in</span>
+                <DropdownMenuItem
+                  className="mx-1 my-1 cursor-pointer rounded-md transition-colors hover:bg-primary/5 focus:bg-primary/5"
+                  onClick={handleLogin}
+                >
+                  <LogIn className="mr-2.5 size-3.5" strokeWidth={2} />
+                  <span className="text-sm">Log in</span>
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
@@ -241,32 +244,35 @@ export function SiteHeader() {
               </Avatar>
               <span className="sr-only">Profile</span>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="min-w-[200px]">
               {user ? (
                 <>
-                  <div className="px-2 py-1.5">
+                  <div className="px-3 py-2.5">
                     <div className="flex flex-col space-y-1">
-                      <p className="font-medium text-sm leading-none">
+                      <p className="font-medium text-foreground text-sm leading-tight">
                         {user.user_metadata?.full_name ?? "User"}
                       </p>
-                      <p className="text-muted-foreground text-xs leading-none">
+                      <p className="text-muted-foreground/70 text-xs leading-tight">
                         {user.email}
                       </p>
                     </div>
                   </div>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
-                    className="text-red-600 focus:text-red-600"
+                    className="mx-1 mb-1 cursor-pointer rounded-md text-red-600/90 transition-colors hover:bg-red-50/80 focus:bg-red-50/80 focus:text-red-600 dark:focus:bg-red-950/20 dark:hover:bg-red-950/20"
                     onClick={handleLogout}
                   >
-                    <LogOut className="mr-2 size-4" />
-                    <span>Log out</span>
+                    <LogOut className="mr-2.5 size-3.5" strokeWidth={2} />
+                    <span className="text-sm">Log out</span>
                   </DropdownMenuItem>
                 </>
               ) : (
-                <DropdownMenuItem onClick={handleLogin}>
-                  <LogIn className="mr-2 size-4" />
-                  <span>Log in</span>
+                <DropdownMenuItem
+                  className="mx-1 my-1 cursor-pointer rounded-md transition-colors hover:bg-primary/5 focus:bg-primary/5"
+                  onClick={handleLogin}
+                >
+                  <LogIn className="mr-2.5 size-3.5" strokeWidth={2} />
+                  <span className="text-sm">Log in</span>
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
