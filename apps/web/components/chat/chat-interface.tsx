@@ -2,11 +2,15 @@
 
 import type { AuthUser } from "@saltwise/ui/auth/auth-island";
 import { AuthIsland } from "@saltwise/ui/auth/auth-island";
+import { cn } from "@saltwise/ui/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
-import { Loader2Icon } from "lucide-react";
+import { Loader2Icon, MicIcon, SquareIcon, Volume2Icon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useChatMessages } from "@/hooks/use-ai-chat";
 import { useChatStore } from "@/hooks/use-chat-store";
+import { useTts } from "@/hooks/use-tts";
+import { useStreamingTts } from "@/hooks/use-tts-stream";
+import { useVoiceRecorder } from "@/hooks/use-voice-recorder";
 import { MAX_MESSAGE_LENGTH } from "@/lib/ai/salty";
 import { createClient } from "@/lib/supabase/client";
 import { SaltyResponse } from "../salty-response";
@@ -21,8 +25,9 @@ interface ChatMessage {
 async function readStream(
   response: Response,
   assistantMessageId: string,
-  setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>
-) {
+  setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>,
+  onToken?: (token: string) => void
+): Promise<string> {
   const reader = response.body?.getReader();
   if (!reader) {
     throw new Error("No response stream");
@@ -30,6 +35,7 @@ async function readStream(
 
   const decoder = new TextDecoder();
   let done = false;
+  let fullText = "";
 
   while (!done) {
     const result = await reader.read();
@@ -37,6 +43,8 @@ async function readStream(
 
     if (result.value) {
       const text = decoder.decode(result.value, { stream: true });
+      fullText += text;
+      onToken?.(text);
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === assistantMessageId
@@ -46,6 +54,14 @@ async function readStream(
       );
     }
   }
+
+  return fullText;
+}
+
+function formatElapsed(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
 
 function EmptyState() {
@@ -137,6 +153,33 @@ export function ChatInterface() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const lastAssistantIdRef = useRef<string | null>(null);
+
+  // --- TTS hook (for manual toggle on completed messages) ---
+  const {
+    toggle: ttsToggle,
+    getState: ttsGetState,
+    stopAll: ttsStopAll,
+  } = useTts({
+    onError: (msg) => setError(msg),
+  });
+
+  // --- Streaming TTS hook (for real-time auto-read during LLM streaming) ---
+  const streamingTts = useStreamingTts({
+    onError: (msg) => setError(msg),
+  });
+
+  // --- Voice recorder hook ---
+  const voiceRecorder = useVoiceRecorder({
+    onTranscription: (text) => {
+      sendMessage(text);
+    },
+    onError: (msg) => setError(msg),
+  });
+
+  const isRecording = voiceRecorder.state === "recording";
+  const isTranscribing = voiceRecorder.state === "transcribing";
+  const isVoiceBusy = isRecording || isTranscribing;
 
   // Sync with history when it changes (e.g. switching conversations)
   useEffect(() => {
@@ -225,8 +268,9 @@ export function ChatInterface() {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
       setIsStreaming(false);
+      streamingTts.stop();
     }
-  }, []);
+  }, [streamingTts]);
 
   const sendMessage = useCallback(
     async (overrideMessage?: string) => {
@@ -246,6 +290,12 @@ export function ChatInterface() {
 
       const userMessageId = crypto.randomUUID();
       const assistantMessageId = crypto.randomUUID();
+      lastAssistantIdRef.current = assistantMessageId;
+
+      // Start streaming TTS session so tokens can be fed as they arrive
+      // Stop any existing manual TTS playback first
+      ttsStopAll();
+      streamingTts.startSession();
 
       // Optimistic update
       setChatMessages((prev) => [
@@ -292,7 +342,16 @@ export function ChatInterface() {
           queryClient.invalidateQueries({ queryKey: ["conversations"] });
         }
 
-        await readStream(response, assistantMessageId, setChatMessages);
+        // Read stream with token callback that feeds streaming TTS in real-time
+        await readStream(
+          response,
+          assistantMessageId,
+          setChatMessages,
+          (token) => streamingTts.feedToken(token)
+        );
+
+        // Signal that all LLM tokens have arrived — flush remaining buffered text
+        streamingTts.flushAndFinish();
 
         // After stream ends, invalidate messages to ensure we have the DB state
         if (newConversationId) {
@@ -302,12 +361,14 @@ export function ChatInterface() {
         }
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") {
+          streamingTts.stop();
           return;
         }
 
         const errorMessage =
           err instanceof Error ? err.message : "Something went wrong";
         setError(errorMessage);
+        streamingTts.stop();
         setChatMessages((prev) =>
           prev.filter((msg) => msg.id !== assistantMessageId)
         );
@@ -325,6 +386,8 @@ export function ChatInterface() {
       activeConversationId,
       queryClient,
       setActiveConversation,
+      ttsStopAll,
+      streamingTts,
     ]
   );
 
@@ -341,6 +404,16 @@ export function ChatInterface() {
     sendMessage,
     setInitialMessage,
   ]);
+
+  const showSuggestions = !(input || isStreaming || isVoiceBusy);
+  const inputDisabled = isStreaming || isVoiceBusy;
+
+  let micButtonLabel = "Start voice recording";
+  if (isRecording) {
+    micButtonLabel = "Stop recording";
+  } else if (isTranscribing) {
+    micButtonLabel = "Transcribing audio";
+  }
 
   return (
     <div className="relative flex h-full flex-col bg-white dark:bg-black">
@@ -393,7 +466,10 @@ export function ChatInterface() {
                 msg.role === "assistant"
               }
               key={msg.id}
+              messageId={msg.id}
+              onTtsToggle={ttsToggle}
               role={msg.role}
+              ttsState={ttsGetState(msg.id)}
             />
           ))}
 
@@ -411,7 +487,7 @@ export function ChatInterface() {
       <div className="border-border/40 border-t bg-white/40 p-3 backdrop-blur-xl sm:p-4 dark:bg-black/40">
         <div className="mx-auto max-w-2xl">
           {/* Quick Suggestions */}
-          {!(input || isStreaming) && (
+          {showSuggestions && (
             <div className="no-scrollbar scrollbar-none mb-3 flex gap-2 overflow-x-auto pb-1">
               {[
                 "Side effects of Dolo 650",
@@ -432,71 +508,191 @@ export function ChatInterface() {
           )}
 
           <div
-            className={`group relative flex items-center gap-2 rounded-2xl border bg-white shadow-sm transition-all duration-300 dark:bg-white/3 ${
-              isStreaming
-                ? "border-primary/30 ring-2 ring-primary/5"
-                : "border-border/50 focus-within:border-primary/50 focus-within:ring-4 focus-within:ring-primary/10 hover:border-primary/20 hover:shadow-md"
-            }`}
+            className={cn(
+              "group relative flex items-center gap-2 rounded-2xl border bg-white shadow-sm transition-all duration-300 dark:bg-white/3",
+              isRecording && "border-red-400/50 ring-2 ring-red-400/15",
+              !isRecording &&
+                isTranscribing &&
+                "border-amber-400/50 ring-2 ring-amber-400/10",
+              !(isRecording || isTranscribing) &&
+                isStreaming &&
+                "border-primary/30 ring-2 ring-primary/5",
+              !(isRecording || isTranscribing || isStreaming) &&
+                "border-border/50 focus-within:border-primary/50 focus-within:ring-4 focus-within:ring-primary/10 hover:border-primary/20 hover:shadow-md"
+            )}
           >
-            <input
-              className="flex-1 bg-transparent py-3 pl-4 text-sm outline-none placeholder:text-muted-foreground/60"
-              disabled={isStreaming}
-              maxLength={MAX_MESSAGE_LENGTH}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  sendMessage();
-                }
-              }}
-              placeholder="Ask Salty anything about medicines..."
-              ref={inputRef}
-              value={input}
-            />
-            <div className="pr-2">
-              <button
-                aria-label={isStreaming ? "Stop generating" : "Send message"}
-                className={`flex size-8 items-center justify-center rounded-full transition-all duration-300 ${
-                  input.trim().length > 0 || isStreaming
-                    ? "shadow-lg hover:scale-105 hover:shadow-primary/25"
-                    : "cursor-not-allowed opacity-50 grayscale"
-                }`}
-                disabled={!isStreaming && input.trim().length === 0}
-                onClick={() => {
-                  if (isStreaming) {
-                    stopGeneration();
-                  } else {
+            {/* Recording State Overlay */}
+            {isRecording && (
+              <div className="flex flex-1 items-center gap-3 py-3 pl-4">
+                <span aria-hidden="true" className="relative flex size-2.5">
+                  <span className="absolute inline-flex size-full animate-ping rounded-full bg-red-400 opacity-75" />
+                  <span className="relative inline-flex size-2.5 rounded-full bg-red-500" />
+                </span>
+                <span className="text-red-600 text-sm dark:text-red-400">
+                  Recording...
+                </span>
+                <output
+                  aria-label={`Recording time: ${formatElapsed(voiceRecorder.elapsed)}`}
+                  className="font-mono text-muted-foreground text-xs tabular-nums"
+                >
+                  {formatElapsed(voiceRecorder.elapsed)}
+                </output>
+                {/* Animated waveform bars */}
+                <div aria-hidden="true" className="flex items-center gap-0.5">
+                  {[0, 1, 2, 3, 4].map((i) => (
+                    <span
+                      className="w-0.5 rounded-full bg-red-400/60"
+                      key={i}
+                      style={{
+                        height: `${8 + Math.sin(Date.now() / 200 + i * 1.2) * 6}px`,
+                        animation: `salty-wave 0.8s ease-in-out ${i * 0.1}s infinite alternate`,
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Transcribing State */}
+            {isTranscribing && (
+              <div className="flex flex-1 items-center gap-3 py-3 pl-4">
+                <Loader2Icon className="size-4 animate-spin text-amber-500" />
+                <span className="text-amber-600 text-sm dark:text-amber-400">
+                  Transcribing your voice...
+                </span>
+              </div>
+            )}
+
+            {/* Normal Input */}
+            {!(isRecording || isTranscribing) && (
+              <input
+                className="flex-1 bg-transparent py-3 pl-4 text-sm outline-none placeholder:text-muted-foreground/60"
+                disabled={inputDisabled}
+                maxLength={MAX_MESSAGE_LENGTH}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
                     sendMessage();
                   }
                 }}
-                type="button"
-              >
-                {isStreaming ? (
-                  // biome-ignore lint/performance/noImgElement: static asset
-                  // biome-ignore lint/correctness/useImageSize: skip
-                  <img
-                    alt="Stop"
-                    className="size-12"
-                    src="/landing-assets/pill-square.webp"
-                  />
-                ) : (
-                  // biome-ignore lint/performance/noImgElement: static asset
-                  // biome-ignore lint/correctness/useImageSize: skip
-                  <img
-                    alt="Send"
-                    className="size-10"
-                    src="/landing-assets/pill-triangle.webp"
-                  />
-                )}
-              </button>
+                placeholder="Ask Salty anything about medicines..."
+                ref={inputRef}
+                value={input}
+              />
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-1 pr-2">
+              {/* Mic Button */}
+              {voiceRecorder.isSupported && (
+                <button
+                  aria-label={micButtonLabel}
+                  aria-pressed={isRecording}
+                  className={cn(
+                    "flex size-8 items-center justify-center rounded-full transition-all duration-200",
+                    isRecording &&
+                      "bg-red-500 text-white shadow-md shadow-red-500/25 hover:bg-red-600",
+                    !isRecording &&
+                      isTranscribing &&
+                      "cursor-wait text-amber-500",
+                    !(isRecording || isTranscribing) &&
+                      "text-muted-foreground/60 hover:bg-muted/50 hover:text-foreground"
+                  )}
+                  disabled={isTranscribing || isStreaming}
+                  onClick={voiceRecorder.toggleRecording}
+                  type="button"
+                >
+                  {isRecording ? (
+                    <SquareIcon className="size-3 fill-current" />
+                  ) : (
+                    <MicIcon className="size-4" />
+                  )}
+                </button>
+              )}
+
+              {/* Send / Stop Button */}
+              {!isRecording && (
+                <button
+                  aria-label={isStreaming ? "Stop generating" : "Send message"}
+                  className={cn(
+                    "flex size-8 items-center justify-center rounded-full transition-all duration-300",
+                    input.trim().length > 0 || isStreaming
+                      ? "shadow-lg hover:scale-105 hover:shadow-primary/25"
+                      : "cursor-not-allowed opacity-50 grayscale"
+                  )}
+                  disabled={
+                    !isStreaming && (input.trim().length === 0 || isVoiceBusy)
+                  }
+                  onClick={() => {
+                    if (isStreaming) {
+                      stopGeneration();
+                    } else {
+                      sendMessage();
+                    }
+                  }}
+                  type="button"
+                >
+                  {isStreaming ? (
+                    // biome-ignore lint/performance/noImgElement: static asset
+                    // biome-ignore lint/correctness/useImageSize: skip
+                    <img
+                      alt="Stop"
+                      className="size-12"
+                      src="/landing-assets/pill-squircle.webp"
+                    />
+                  ) : (
+                    // biome-ignore lint/performance/noImgElement: static asset
+                    // biome-ignore lint/correctness/useImageSize: skip
+                    <img
+                      alt="Send"
+                      className="size-10"
+                      src="/landing-assets/pill-triangle.webp"
+                    />
+                  )}
+                </button>
+              )}
             </div>
           </div>
-          <p className="mt-2 text-center text-[0.6rem] text-muted-foreground/50">
-            Salty is an AI assistant and can make mistakes. Please verify
-            important medical information.
-          </p>
+
+          {/* Footer row: disclaimer + auto-read toggle */}
+          <div className="mt-2 flex items-center justify-between">
+            <p className="text-[0.6rem] text-muted-foreground/50">
+              Salty is an AI assistant and can make mistakes. Please verify
+              important medical information.
+            </p>
+
+            {/* Auto-read toggle */}
+            <button
+              aria-label={
+                streamingTts.autoRead
+                  ? "Disable auto-read responses"
+                  : "Enable auto-read responses"
+              }
+              aria-pressed={streamingTts.autoRead}
+              className={cn(
+                "ml-3 flex shrink-0 items-center gap-1.5 rounded-full border px-2 py-0.5 text-[0.6rem] transition-all duration-200",
+                streamingTts.autoRead
+                  ? "border-primary/30 bg-primary/10 text-primary"
+                  : "border-border/40 text-muted-foreground/50 hover:border-border/60 hover:text-muted-foreground/70"
+              )}
+              onClick={streamingTts.toggleAutoRead}
+              type="button"
+            >
+              <Volume2Icon className="size-3" />
+              <span>Auto-read</span>
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* CSS animation for waveform bars */}
+      <style>{`
+        @keyframes salty-wave {
+          0% { height: 4px; }
+          100% { height: 16px; }
+        }
+      `}</style>
     </div>
   );
 }

@@ -6,6 +6,13 @@ import {
   AvatarImage,
 } from "@saltwise/ui/components/avatar";
 import { Button } from "@saltwise/ui/components/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@saltwise/ui/components/dropdown-menu";
 import { Separator } from "@saltwise/ui/components/separator";
 import {
   Sheet,
@@ -17,6 +24,8 @@ import {
 import {
   CircleUserRoundIcon,
   HistoryIcon,
+  LogIn,
+  LogOut,
   MenuIcon,
   SearchIcon,
 } from "lucide-react";
@@ -25,6 +34,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { type SyntheticEvent, useEffect, useRef, useState } from "react";
 import { useUser } from "@/hooks/use-user";
+import { createClient } from "@/lib/supabase/client";
 
 const PILL_BASE =
   "rounded-full border border-white/30 bg-white/80 shadow-lg backdrop-blur-2xl backdrop-saturate-150 dark:border-white/[0.1] dark:bg-white/[0.05] dark:shadow-[0_8px_32px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.05)] dark:backdrop-saturate-125";
@@ -45,9 +55,20 @@ export function SiteHeader() {
   const [searchFocused, setSearchFocused] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    setNavQuery(q);
-  }, [q]);
+  const handleLogin = async () => {
+    const supabase = createClient();
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+  };
+
+  const handleLogout = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+  };
 
   const handleNavSearch = (e: SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -115,7 +136,7 @@ export function SiteHeader() {
 
           <div className="mx-0.5 h-4 w-px bg-black/6 dark:bg-white/10" />
 
-          <Link href="/history">
+          {/* <Link href="/history">
             <Button
               className="gap-2 rounded-full"
               size="sm"
@@ -124,26 +145,64 @@ export function SiteHeader() {
               <HistoryIcon className="size-3.5" data-icon="inline-start" />
               History
             </Button>
-          </Link>
+          </Link> */}
 
           <div className="mx-0.5 h-4 w-px bg-black/6 dark:bg-white/10" />
 
-          <Button
-            className="rounded-full text-muted-foreground hover:text-foreground"
-            size="icon-sm"
-            variant="ghost"
-          >
-            <Avatar className="size-5">
-              <AvatarImage
-                alt={user?.user_metadata?.full_name ?? "User avatar"}
-                src={user?.user_metadata?.avatar_url}
-              />
-              <AvatarFallback className="bg-transparent text-muted-foreground">
-                <CircleUserRoundIcon className="size-4" strokeWidth={1.8} />
-              </AvatarFallback>
-            </Avatar>
-            <span className="sr-only">Profile</span>
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  className="rounded-full text-muted-foreground hover:text-foreground"
+                  size="icon-sm"
+                  variant="ghost"
+                />
+              }
+            >
+              <Avatar className="size-5">
+                <AvatarImage
+                  alt={user?.user_metadata?.full_name ?? "User avatar"}
+                  src={user?.user_metadata?.avatar_url}
+                />
+                <AvatarFallback className="bg-transparent text-muted-foreground">
+                  <CircleUserRoundIcon className="size-4" strokeWidth={1.8} />
+                </AvatarFallback>
+              </Avatar>
+              <span className="sr-only">Profile</span>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-[200px]">
+              {user ? (
+                <>
+                  <div className="px-3 py-2.5">
+                    <div className="flex flex-col space-y-1">
+                      <p className="font-medium text-foreground text-sm leading-tight">
+                        {user.user_metadata?.full_name ?? "User"}
+                      </p>
+                      <p className="text-muted-foreground/70 text-xs leading-tight">
+                        {user.email}
+                      </p>
+                    </div>
+                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="mx-1 mb-1 cursor-pointer rounded-md text-red-600/90 transition-colors hover:bg-red-50/80 focus:bg-red-50/80 focus:text-red-600 dark:focus:bg-red-950/20 dark:hover:bg-red-950/20"
+                    onClick={handleLogout}
+                  >
+                    <LogOut className="mr-2.5 size-3.5" strokeWidth={2} />
+                    <span className="text-sm">Log out</span>
+                  </DropdownMenuItem>
+                </>
+              ) : (
+                <DropdownMenuItem
+                  className="mx-1 my-1 cursor-pointer rounded-md transition-colors hover:bg-primary/5 focus:bg-primary/5"
+                  onClick={handleLogin}
+                >
+                  <LogIn className="mr-2.5 size-3.5" strokeWidth={2} />
+                  <span className="text-sm">Log in</span>
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
@@ -167,22 +226,60 @@ export function SiteHeader() {
             </Button>
           </Link>
 
-          <Button
-            className="text-muted-foreground"
-            size="icon-sm"
-            variant="ghost"
-          >
-            <Avatar className="size-5">
-              <AvatarImage
-                alt={user?.user_metadata?.full_name ?? "User avatar"}
-                src={user?.user_metadata?.avatar_url}
-              />
-              <AvatarFallback className="bg-transparent text-muted-foreground">
-                <CircleUserRoundIcon className="size-4" strokeWidth={1.8} />
-              </AvatarFallback>
-            </Avatar>
-            <span className="sr-only">Profile</span>
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  className="text-muted-foreground"
+                  size="icon-sm"
+                  variant="ghost"
+                />
+              }
+            >
+              <Avatar className="size-5">
+                <AvatarImage
+                  alt={user?.user_metadata?.full_name ?? "User avatar"}
+                  src={user?.user_metadata?.avatar_url}
+                />
+                <AvatarFallback className="bg-transparent text-muted-foreground">
+                  <CircleUserRoundIcon className="size-4" strokeWidth={1.8} />
+                </AvatarFallback>
+              </Avatar>
+              <span className="sr-only">Profile</span>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-[200px]">
+              {user ? (
+                <>
+                  <div className="px-3 py-2.5">
+                    <div className="flex flex-col space-y-1">
+                      <p className="font-medium text-foreground text-sm leading-tight">
+                        {user.user_metadata?.full_name ?? "User"}
+                      </p>
+                      <p className="text-muted-foreground/70 text-xs leading-tight">
+                        {user.email}
+                      </p>
+                    </div>
+                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="mx-1 mb-1 cursor-pointer rounded-md text-red-600/90 transition-colors hover:bg-red-50/80 focus:bg-red-50/80 focus:text-red-600 dark:focus:bg-red-950/20 dark:hover:bg-red-950/20"
+                    onClick={handleLogout}
+                  >
+                    <LogOut className="mr-2.5 size-3.5" strokeWidth={2} />
+                    <span className="text-sm">Log out</span>
+                  </DropdownMenuItem>
+                </>
+              ) : (
+                <DropdownMenuItem
+                  className="mx-1 my-1 cursor-pointer rounded-md transition-colors hover:bg-primary/5 focus:bg-primary/5"
+                  onClick={handleLogin}
+                >
+                  <LogIn className="mr-2.5 size-3.5" strokeWidth={2} />
+                  <span className="text-sm">Log in</span>
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <Sheet onOpenChange={setMobileOpen} open={mobileOpen}>
             <SheetTrigger

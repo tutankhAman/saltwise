@@ -2,9 +2,11 @@
 
 import { cn } from "@saltwise/ui/lib/utils";
 import { format } from "date-fns";
-import { UserIcon } from "lucide-react";
+import { Loader2Icon, PauseIcon, UserIcon, Volume2Icon } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+
+type TtsState = "idle" | "loading" | "playing";
 
 interface SaltyResponseProps {
   role: "user" | "assistant";
@@ -12,6 +14,9 @@ interface SaltyResponseProps {
   isStreaming?: boolean;
   avatarUrl?: string | null;
   createdAt?: string;
+  messageId?: string;
+  ttsState?: TtsState;
+  onTtsToggle?: (messageId: string, text: string) => void;
 }
 
 function Avatar({
@@ -53,14 +58,63 @@ function Avatar({
   return <UserIcon className="size-4 opacity-70" />;
 }
 
+function TtsButton({
+  messageId,
+  content,
+  state,
+  onToggle,
+}: {
+  messageId: string;
+  content: string;
+  state: TtsState;
+  onToggle: (messageId: string, text: string) => void;
+}) {
+  const isLoading = state === "loading";
+  const isPlaying = state === "playing";
+  const isActive = isLoading || isPlaying;
+
+  let label = "Read aloud";
+  if (isLoading) {
+    label = "Loading audio...";
+  }
+  if (isPlaying) {
+    label = "Stop reading";
+  }
+
+  return (
+    <button
+      aria-label={label}
+      className={cn(
+        "flex size-6 items-center justify-center rounded-full transition-all duration-200",
+        isActive
+          ? "bg-primary/10 text-primary"
+          : "text-muted-foreground/40 hover:bg-primary/5 hover:text-primary"
+      )}
+      disabled={isLoading}
+      onClick={() => onToggle(messageId, content)}
+      title={label}
+      type="button"
+    >
+      {isLoading && <Loader2Icon className="size-3 animate-spin" />}
+      {isPlaying && <PauseIcon className="size-3 fill-current" />}
+      {!isActive && <Volume2Icon className="size-3" />}
+    </button>
+  );
+}
+
 export function SaltyResponse({
   role,
   content,
   isStreaming,
   avatarUrl,
   createdAt,
+  messageId,
+  ttsState = "idle",
+  onTtsToggle,
 }: SaltyResponseProps) {
   const isUser = role === "user";
+  const showTts =
+    !isUser && messageId && onTtsToggle && content.trim().length > 0;
 
   return (
     <div
@@ -120,6 +174,16 @@ export function SaltyResponse({
             </div>
           )}
         </div>
+
+        {/* TTS play button - appears below the bubble for assistant messages */}
+        {showTts && !isStreaming && (
+          <TtsButton
+            content={content}
+            messageId={messageId}
+            onToggle={onTtsToggle}
+            state={ttsState}
+          />
+        )}
       </div>
     </div>
   );
