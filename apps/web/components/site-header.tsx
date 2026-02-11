@@ -5,12 +5,11 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@saltwise/ui/components/avatar";
-import { Button, buttonVariants } from "@saltwise/ui/components/button";
+import { Button } from "@saltwise/ui/components/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@saltwise/ui/components/dropdown-menu";
@@ -22,7 +21,6 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@saltwise/ui/components/sheet";
-import { cn } from "@saltwise/ui/lib/utils";
 import {
   CircleUserRoundIcon,
   HistoryIcon,
@@ -150,10 +148,13 @@ export function SiteHeader() {
 
           <DropdownMenu>
             <DropdownMenuTrigger
-              className={cn(
-                buttonVariants({ size: "icon-sm", variant: "ghost" }),
-                "rounded-full text-muted-foreground hover:text-foreground"
-              )}
+              render={
+                <Button
+                  className="rounded-full text-muted-foreground hover:text-foreground"
+                  size="icon-sm"
+                  variant="ghost"
+                />
+              }
             >
               <Avatar className="size-5">
                 <AvatarImage
@@ -169,7 +170,7 @@ export function SiteHeader() {
             <DropdownMenuContent align="end">
               {user ? (
                 <>
-                  <DropdownMenuLabel>
+                  <div className="px-2 py-1.5">
                     <div className="flex flex-col space-y-1">
                       <p className="font-medium text-sm leading-none">
                         {user.user_metadata?.full_name ?? "User"}
@@ -178,7 +179,7 @@ export function SiteHeader() {
                         {user.email}
                       </p>
                     </div>
-                  </DropdownMenuLabel>
+                  </div>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     className="text-red-600 focus:text-red-600"
@@ -221,10 +222,13 @@ export function SiteHeader() {
 
           <DropdownMenu>
             <DropdownMenuTrigger
-              className={cn(
-                buttonVariants({ size: "icon-sm", variant: "ghost" }),
-                "text-muted-foreground"
-              )}
+              render={
+                <Button
+                  className="text-muted-foreground"
+                  size="icon-sm"
+                  variant="ghost"
+                />
+              }
             >
               <Avatar className="size-5">
                 <AvatarImage
@@ -240,7 +244,7 @@ export function SiteHeader() {
             <DropdownMenuContent align="end">
               {user ? (
                 <>
-                  <DropdownMenuLabel>
+                  <div className="px-2 py-1.5">
                     <div className="flex flex-col space-y-1">
                       <p className="font-medium text-sm leading-none">
                         {user.user_metadata?.full_name ?? "User"}
@@ -249,7 +253,7 @@ export function SiteHeader() {
                         {user.email}
                       </p>
                     </div>
-                  </DropdownMenuLabel>
+                  </div>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     className="text-red-600 focus:text-red-600"
