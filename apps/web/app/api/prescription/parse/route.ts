@@ -5,7 +5,7 @@ import type { PrescriptionMedicine } from "@/lib/types";
 
 export const runtime = "nodejs";
 
-const MAX_PAYLOAD_BYTES = 4 * 1024 * 1024; // 4 MB (Llama vision limit)
+const MAX_PAYLOAD_BYTES = 4 * 1024 * 1024; // 4 MB (well under Qwen 3.6 20MB image limit)
 
 const ALLOWED_MIME_PREFIXES = [
   "data:image/jpeg",
@@ -137,6 +137,8 @@ export async function POST(request: Request) {
       ],
       temperature: 0.1,
       max_tokens: 1024,
+      reasoning_format: "hidden",
+      response_format: { type: "json_object" },
     });
 
     const rawContent = completion.choices[0]?.message?.content;

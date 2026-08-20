@@ -5,11 +5,10 @@ import { env } from "@/lib/env";
 export const SALTY_MODEL = "openai/gpt-oss-120b" as const;
 
 /** The model ID used for drug insights generation (safety info, interactions, explanations) */
-export const INSIGHTS_MODEL = "llama-3.3-70b-versatile" as const;
+export const INSIGHTS_MODEL = "openai/gpt-oss-120b" as const;
 
 /** The model ID used for prescription OCR (vision-capable) */
-export const OCR_MODEL =
-  "meta-llama/llama-4-maverick-17b-128e-instruct" as const;
+export const OCR_MODEL = "qwen/qwen3.6-27b" as const;
 
 /** The model ID used for speech-to-text transcription */
 export const STT_MODEL = "whisper-large-v3-turbo" as const;
