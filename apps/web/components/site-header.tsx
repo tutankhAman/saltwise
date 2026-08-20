@@ -32,7 +32,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { type SyntheticEvent, useEffect, useRef, useState } from "react";
+import { type SyntheticEvent, useRef, useState } from "react";
 import { useUser } from "@/hooks/use-user";
 import { createClient } from "@/lib/supabase/client";
 

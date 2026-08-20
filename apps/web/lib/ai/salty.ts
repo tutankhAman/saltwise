@@ -1,5 +1,6 @@
 import { aiLogger } from "@saltwise/logger";
 import type Groq from "groq-sdk";
+import { MAX_HISTORY_MESSAGES } from "./constants";
 import { getGroqClient, SALTY_DEFAULTS, SALTY_MODEL } from "./groq";
 
 export const SALTY_SYSTEM_PROMPT = `You are Salty, a friendly and knowledgeable pharmaceutical assistant for SaltWise — an Indian medicine comparison platform that helps users find affordable generic alternatives.
@@ -34,10 +35,6 @@ export const SALTY_SYSTEM_PROMPT = `You are Salty, a friendly and knowledgeable 
 - Bold important warnings
 - Use markdown formatting for structure
 `;
-
-const MAX_HISTORY_MESSAGES = 20;
-export const MAX_MESSAGE_LENGTH = 2000;
-export const RATE_LIMIT_PER_MINUTE = 20;
 
 export interface ChatMessage {
   role: "user" | "assistant";

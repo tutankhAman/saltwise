@@ -5,11 +5,8 @@ import { and, desc, eq, gt } from "drizzle-orm";
 import Groq from "groq-sdk";
 import { NextResponse } from "next/server";
 import type { Logger } from "pino";
-import {
-  createSaltyStream,
-  MAX_MESSAGE_LENGTH,
-  RATE_LIMIT_PER_MINUTE,
-} from "@/lib/ai/salty";
+import { MAX_MESSAGE_LENGTH, RATE_LIMIT_PER_MINUTE } from "@/lib/ai/constants";
+import { createSaltyStream } from "@/lib/ai/salty";
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";

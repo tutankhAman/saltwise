@@ -11,7 +11,7 @@ import { useChatStore } from "@/hooks/use-chat-store";
 import { useTts } from "@/hooks/use-tts";
 import { useStreamingTts } from "@/hooks/use-tts-stream";
 import { useVoiceRecorder } from "@/hooks/use-voice-recorder";
-import { MAX_MESSAGE_LENGTH } from "@/lib/ai/salty";
+import { MAX_MESSAGE_LENGTH } from "@/lib/ai/constants";
 import { createClient } from "@/lib/supabase/client";
 import { SaltyResponse } from "../salty-response";
 

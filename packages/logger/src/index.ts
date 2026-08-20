@@ -1,8 +1,9 @@
 import pino from "pino";
+import pretty from "pino-pretty";
 
 const isProduction = process.env.NODE_ENV === "production";
 
-export const rootLogger = pino({
+const baseOptions: pino.LoggerOptions = {
   name: "saltwise",
   level: isProduction ? "info" : "debug",
   timestamp: pino.stdTimeFunctions.isoTime,
@@ -18,17 +19,17 @@ export const rootLogger = pino({
     "GROQ_API_KEY",
     "NEXT_PUBLIC_SUPABASE_ANON_KEY",
   ],
-  transport: isProduction
-    ? undefined
-    : {
-        target: "pino-pretty",
-        options: {
-          colorize: true,
-          ignore: "pid,hostname",
-          translateTime: "SYS:standard",
-        },
-      },
-});
+};
+
+const stream = isProduction
+  ? undefined
+  : pretty({
+      colorize: true,
+      ignore: "pid,hostname",
+      translateTime: "SYS:standard",
+    });
+
+export const rootLogger = pino(baseOptions, stream);
 
 export const authLogger = rootLogger.child({ module: "auth" });
 export const aiLogger = rootLogger.child({ module: "ai" });
