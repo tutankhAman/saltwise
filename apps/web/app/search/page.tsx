@@ -164,12 +164,22 @@ function SearchContent() {
   const [query, setQuery] = useState(initialQuery);
   const debouncedQuery = useDebounce(query, 300);
 
-  // Sync query with URL params (e.g. when navigating from other pages or using nav search)
+  // Track the latest value the user typed so URL sync never clobbers the input.
+  const lastTypedRef = useRef(initialQuery);
+
+  const updateQuery = useCallback((value: string) => {
+    setQuery(value);
+    lastTypedRef.current = value;
+  }, []);
+
+  // Sync the input only when the URL changed externally (e.g. nav search, back/forward),
+  // never when the change originated from typing.
   useEffect(() => {
-    if (initialQuery !== debouncedQuery) {
+    if (initialQuery !== lastTypedRef.current) {
+      lastTypedRef.current = initialQuery;
       setQuery(initialQuery);
     }
-  }, [initialQuery, debouncedQuery]);
+  }, [initialQuery]);
 
   const [results, setResults] = useState<DrugSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -205,11 +215,16 @@ function SearchContent() {
 
   useEffect(() => {
     if (debouncedQuery) {
-      router.replace(`/search?q=${encodeURIComponent(debouncedQuery)}`);
-    } else if (!isPendingPrescription) {
+      if (
+        initialQuery !== debouncedQuery &&
+        lastTypedRef.current === debouncedQuery
+      ) {
+        router.replace(`/search?q=${encodeURIComponent(debouncedQuery)}`);
+      }
+    } else if (!isPendingPrescription && initialQuery !== "") {
       router.replace("/search");
     }
-  }, [debouncedQuery, router, isPendingPrescription]);
+  }, [debouncedQuery, initialQuery, isPendingPrescription, router]);
 
   const resetResults = useCallback(() => {
     setResults([]);
@@ -238,7 +253,7 @@ function SearchContent() {
   }, [debouncedQuery, resetResults]);
 
   const clearSearch = () => {
-    setQuery("");
+    updateQuery("");
     resetResults();
     router.replace("/search");
   };
@@ -256,10 +271,9 @@ function SearchContent() {
   const handleChipSelect = useCallback(
     (medicine: PrescriptionMedicine, index: number) => {
       setActiveChipIndex(index);
-      const searchTerm = medicine.name;
-      setQuery(searchTerm);
+      updateQuery(medicine.name);
     },
-    []
+    [updateQuery]
   );
 
   const handleChipDismiss = useCallback(
@@ -322,7 +336,7 @@ function SearchContent() {
                 <InputGroupInput
                   autoFocus
                   className="bg-transparent text-[0.95rem] placeholder:text-muted-foreground/50"
-                  onChange={(e) => setQuery(e.target.value)}
+                  onChange={(e) => updateQuery(e.target.value)}
                   placeholder="Search e.g. Dolo 650, Paracetamol..."
                   value={query}
                 />
@@ -473,7 +487,7 @@ function SearchContent() {
                       <button
                         className="inline-flex items-center rounded-full border border-border/40 bg-white/50 px-3 py-1.5 font-medium text-foreground/70 text-xs shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-primary/30 hover:bg-primary/5 hover:text-foreground hover:shadow-md active:scale-95 dark:bg-white/4"
                         key={term}
-                        onClick={() => setQuery(term)}
+                        onClick={() => updateQuery(term)}
                         type="button"
                       >
                         {term}
